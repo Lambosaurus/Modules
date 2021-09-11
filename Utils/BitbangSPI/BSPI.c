@@ -1,7 +1,7 @@
 
 #include "BSPI.h"
 #include "GPIO.h"
-#include "Core.h"
+#include "US.h"
 
 /*
  * PRIVATE DEFINITIONS
@@ -80,10 +80,10 @@ static uint8_t BSPI_Xfer(uint8_t data)
 	{
 		GPIO_Reset(BSPI_GPIO, BSPI_SCK);
 		GPIO_Write(BSPI_GPIO, BSPI_MOSI, data & b);
-		CORE_DelayUs(gBitDelay);
+		US_Delay(gBitDelay);
 		if (GPIO_Read(BSPI_GPIO, BSPI_MISO)) { rx |= b; }
 		GPIO_Set(BSPI_GPIO, BSPI_SCK);
-		CORE_DelayUs(gBitDelay);
+		US_Delay(gBitDelay);
 	}
 
 	return rx;
