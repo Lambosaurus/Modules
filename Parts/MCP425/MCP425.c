@@ -7,8 +7,6 @@
  * PRIVATE DEFINITIONS
  */
 
-#define MCP425_SPI_BITRATE	10000000
-
 #define MCP425_CMD_WRITE	0x00
 #define MCP425_CMD_INCR		0x01
 #define MCP425_CMD_DECR		0x02
@@ -34,8 +32,8 @@
  * PRIVATE PROTOTYPES
  */
 
-static void MCP425_Select(void);
-static void MCP425_Deselect(void);
+static inline void MCP425_Select(void);
+static inline void MCP425_Deselect(void);
 static uint32_t MCP425_Read(uint32_t reg);
 static void MCP425_Write(uint32_t reg, uint32_t value);
 
@@ -130,18 +128,14 @@ static void MCP425_Write(uint32_t reg, uint32_t value)
 	MCP425_Deselect();
 }
 
-static void MCP425_Select(void)
+static inline void MCP425_Select(void)
 {
-	// Might as well init & deinit the SPI for every transaction
-	// As we do so few read/writes
-	SPI_Init(MCP425_SPI, MCP425_SPI_BITRATE, SPI_Mode_0);
 	GPIO_Reset(MCP425_CS_GPIO, MCP425_CS_PIN);
 }
 
-static void MCP425_Deselect(void)
+static inline void MCP425_Deselect(void)
 {
 	GPIO_Set(MCP425_CS_GPIO, MCP425_CS_PIN);
-	SPI_Deinit(MCP425_SPI);
 }
 
 /*

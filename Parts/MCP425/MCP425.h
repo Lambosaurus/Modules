@@ -9,6 +9,8 @@
 
 #define MCP425_R_MAX		10000
 
+#define MCP425_SPI_BITRATE	10000000 // 10MHz
+
 /*
  * PUBLIC TYPES
  */

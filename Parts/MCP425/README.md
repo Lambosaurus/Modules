@@ -4,10 +4,13 @@ There are other parts in this series that could be supported with minor modifica
 This uses an SPI interface.
 
 ## Usage
+Note that the SPI enable/disable is the responsibility of the user.
+
 The following example initialises the module, and configures channel 0 to 4K7
 Also note that the resistance is defined between the wiper terminal and terminal B.
 
 ```C
+SPI_Init(MCP425_SPI, MCP425_SPI_BITRATE, SPI_Mode_0);
 MCP425_Init();
 MCP425_SetTerminals(0, MCP425_T_All);
 MCP425_SetResistance(0, 4700);
