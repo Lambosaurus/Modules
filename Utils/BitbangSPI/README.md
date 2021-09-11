@@ -24,6 +24,7 @@ The module is dependant on  definitions within `Board.h`
 The following template can be used.
 
 ```C
+// Configure bit banged SPI
 #define BSPI_GPIO		GPIOA
 #define BSPI_MISO		GPIO_PIN_4
 #define BSPI_MOSI		GPIO_PIN_7

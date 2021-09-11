@@ -26,6 +26,7 @@ The module is dependant on  definitions within `Board.h`
 The following template can be used.
 
 ```C
+// Configure buzzer module
 #define BUZZER_GPIO			GPIOA
 #define BUZZER_PIN			GPIO_PIN_6
 #define BUZZER_TIM			TIM_22
