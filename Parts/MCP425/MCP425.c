@@ -1,13 +1,13 @@
-
 #include "MCP425.h"
-#include "BSPI.h"
+
+#include "SPI.h"
 #include "GPIO.h"
 
 /*
  * PRIVATE DEFINITIONS
  */
 
-#define SPI_BITRATE			4000000
+#define MCP425_SPI_BITRATE	10000000
 
 #define MCP425_CMD_WRITE	0x00
 #define MCP425_CMD_INCR		0x01
@@ -23,8 +23,8 @@
 
 #define MCP425_T_HW			0x08
 
-#define MCP425_R_STEPS	256
-#define MCP425_R_WIPER	75
+#define MCP425_R_STEPS		256
+#define MCP425_R_WIPER		75
 
 /*
  * PRIVATE TYPES
@@ -34,8 +34,8 @@
  * PRIVATE PROTOTYPES
  */
 
-static inline void MCP425_Select(void);
-static inline void MCP425_Deselect(void);
+static void MCP425_Select(void);
+static void MCP425_Deselect(void);
 static uint32_t MCP425_Read(uint32_t reg);
 static void MCP425_Write(uint32_t reg, uint32_t value);
 
@@ -51,7 +51,6 @@ static uint8_t gTCON = 0xFF;
 
 bool MCP425_Init(void)
 {
-	BSPI_Init(SPI_BITRATE);
 	GPIO_EnableOutput(MCP425_CS_GPIO, MCP425_CS_PIN, GPIO_PIN_SET);
 
 	uint32_t status = MCP425_Read(MCP425_REG_STAT);
@@ -61,7 +60,6 @@ bool MCP425_Init(void)
 void MCP425_Deinit(void)
 {
 	GPIO_Deinit(MCP425_CS_GPIO, MCP425_CS_PIN);
-	BSPI_Deinit();
 }
 
 void MCP425_SetTerminals(uint8_t ch, MCP425_Terminal_t tcon)
@@ -111,7 +109,7 @@ static uint32_t MCP425_Read(uint32_t reg)
 			0
 	};
 	uint8_t rx[2];
-	BSPI_Transfer(tx, rx, sizeof(tx));
+	SPI_Transfer(MCP425_SPI, tx, rx, sizeof(tx));
 
 	MCP425_Deselect();
 
@@ -127,19 +125,23 @@ static void MCP425_Write(uint32_t reg, uint32_t value)
 		value
 	};
 
-	BSPI_Write(tx, sizeof(tx));
+	BSPI_Write(MCP425_SPI, tx, sizeof(tx));
 
 	MCP425_Deselect();
 }
 
-static inline void MCP425_Select(void)
+static void MCP425_Select(void)
 {
+	// Might as well init & deinit the SPI for every transaction
+	// As we do so few read/writes
+	SPI_Init(MCP425_SPI, MCP425_SPI_BITRATE, SPI_Mode_0);
 	GPIO_Reset(MCP425_CS_GPIO, MCP425_CS_PIN);
 }
 
-static inline void MCP425_Deselect(void)
+static void MCP425_Deselect(void)
 {
 	GPIO_Set(MCP425_CS_GPIO, MCP425_CS_PIN);
+	SPI_Deinit(MCP425_SPI);
 }
 
 /*

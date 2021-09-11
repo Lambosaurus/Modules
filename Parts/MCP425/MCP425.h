@@ -7,7 +7,7 @@
  * PUBLIC DEFINITIONS
  */
 
-#define MCP425_R_MAX	10000
+#define MCP425_R_MAX		10000
 
 /*
  * PUBLIC TYPES
@@ -32,6 +32,7 @@ typedef enum {
 bool MCP425_Init(void);
 void MCP425_Deinit(void);
 
+// Two channels, 0 and 1.
 void MCP425_SetTerminals(uint8_t ch, MCP425_Terminal_t tcon);
 
 // Resistance defined between W and B
