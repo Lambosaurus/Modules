@@ -9,9 +9,24 @@
  * PRIVATE DEFINITIONS
  */
 
-// Settings
 
-#define SPI_BITRATE			6000000  // 6MHz
+#ifndef CC1101_AIR_BAUD
+#define CC1101_AIR_BAUD			38400
+#endif
+#ifndef CC1101_FREQ_KHZ
+#define CC1101_FREQ_KHZ			915000
+#endif
+#ifndef CC1101_DEV_KHZ
+#define CC1101_DEV_KHZ			20
+#endif
+#ifndef CC1101_BANDWIDTH_KHZ
+#define CC1101_BANDWIDTH_KHZ	80
+#endif
+#ifndef CC1101_CH_KHZ
+#define CC1101_CH_KHZ			100
+#endif
+
+
 #define XTAL_FREQ			26000000 // 26MHz
 #define XTAL_FREQ_KHZ		(XTAL_FREQ/1000)
 #define SYNC_WORD			0x5743
@@ -29,7 +44,7 @@
 #define ADDR_WRITE	0x00
 #define ADDR_MASK	0x3F
 
-#define BUFFER_MAX		64
+#define BUFFER_MAX		CC1101_PACKET_MAX
 #define RX_READ_TIMEOUT	50
 
 #define STATUS_TO_STATE(s) 	((s >> 4) & 0x07)
@@ -186,8 +201,6 @@ static inline void CC1101_ResetRx(void);
 
 static bool CC1101_Select(void);
 static inline void CC1101_Deselect(void);
-static inline void CC1101_SPIStart(void);
-static inline void CC1101_SPIStop(void);
 static void CC1101_WriteRegs(uint8_t reg, const uint8_t * data, uint8_t count);
 static void CC1101_ReadRegs(uint8_t reg, uint8_t * data, uint8_t count);
 
@@ -268,7 +281,6 @@ static const uint8_t gCC1101PaTable[] = {
 bool CC1101_Init(CC1101Config_t * config)
 {
 	GPIO_EnableOutput(CC1101_CS_GPIO, CC1101_CS_PIN, GPIO_PIN_SET);
-	CC1101_SPIStart();
 	CC1101_Reset();
 
 	uint8_t version = CC1101_ReadStatus(STAT_VERSION);
@@ -284,36 +296,29 @@ bool CC1101_Init(CC1101Config_t * config)
 		GPIO_EnableInput(CC1101_GD0_GPIO, CC1101_GD0_PIN, GPIO_Pull_None);
 		GPIO_OnChange(CC1101_GD0_GPIO, CC1101_GD0_PIN, GPIO_IT_Rising, CC1101_GD0_IRQHandler);
 	}
-
-	CC1101_SPIStop();
 	return success;
 }
 
 void CC1101_UpdateConfig(CC1101Config_t * config)
 {
-	CC1101_SPIStart();
 	CC1101_Command(CMD_SIDLE);
 	CC1101_WriteConfig(config);
 	CC1101_EnterRx();
-	CC1101_SPIStop();
 }
 
 void CC1101_Deinit(void)
 {
-	CC1101_SPIStart();
 	CC1101_Reset();
-	CC1101_SPIStop();
 	GPIO_Deinit(CC1101_GD0_GPIO, CC1101_GD0_PIN);
 	GPIO_Deinit(CC1101_CS_GPIO, CC1101_CS_PIN);
 }
 
-uint8_t CC1101_Rx(uint8_t * data, uint8_t count)
+uint8_t CC1101_Read(uint8_t * data, uint8_t count)
 {
 	uint8_t read = 0;
-	if (CC1101_RxReady())
+	if (CC1101_ReadReady())
 	{
 		uint8_t bfr[BUFFER_MAX];
-		CC1101_SPIStart();
 		uint8_t fifo_size = CC1101_ReadStatus(STAT_RXBYTES);
 
 		if (fifo_size > 2)
@@ -337,13 +342,11 @@ uint8_t CC1101_Rx(uint8_t * data, uint8_t count)
 				}
 			}
 		}
-
-		CC1101_SPIStop();
 	}
 	return read;
 }
 
-void CC1101_Tx(uint8_t dest, uint8_t * data, uint8_t count)
+void CC1101_Write(uint8_t dest, uint8_t * data, uint8_t count)
 {
 	uint8_t bfr[BUFFER_MAX];
 
@@ -351,23 +354,19 @@ void CC1101_Tx(uint8_t dest, uint8_t * data, uint8_t count)
 	bfr[1] = dest;
 	memcpy(bfr+2, data, count);
 
-	CC1101_SPIStart();
 	CC1101_WriteRegs(REG_FIFO, bfr, count+2);
 	CC1101_Command(CMD_STX);
 	CC1101_EnterRx();
-	CC1101_SPIStop();
 }
 
-bool CC1101_RxReady(void)
+bool CC1101_ReadReady(void)
 {
 	return GPIO_Read(CC1101_GD0_GPIO, CC1101_GD0_PIN);
 }
 
 int16_t CC1101_GetRSSI(void)
 {
-	CC1101_SPIStart();
 	uint8_t v = CC1101_ReadStatus(STAT_RSSI);
-	CC1101_SPIStop();
 
 	int16_t rssi = (((int8_t)v) / 2) - 74;
 	return rssi;
@@ -412,7 +411,7 @@ static void CC1101_WriteModemConfig(void)
 	uint8_t regs[6];
 
 	Exponent_t channel = Exponent_Encode(MDM_CH_DIVIDER(CC1101_CH_KHZ), 8, 2);
-	Exponent_t baud = Exponent_Encode(MDM_BAUD_DIVIDER(CC1101_BAUD), 8, 4);
+	Exponent_t baud = Exponent_Encode(MDM_BAUD_DIVIDER(CC1101_AIR_BAUD), 8, 4);
 	Exponent_t bandwidth = Exponent_Encode(MDM_BW_DIVIDER(CC1101_BANDWIDTH_KHZ), 2, 2);
 
 	regs[0] = baud.e | (bandwidth.m << 4) | (bandwidth.e << 6);	// MDMCFG4
@@ -420,12 +419,16 @@ static void CC1101_WriteModemConfig(void)
 	regs[2] = MDMCFG2_SYNC_3032 | MDMCFG2_MOD_GFSK;				// MDMCFG2
 	regs[3] = channel.e | MDMCFG1_PREAMBLE_4B;					// MDMCFG1
 	regs[4] = channel.m;										// MDMCFG0
-#if (CC1101_EN_FEC)
+#ifdef CC1101_EN_FEC
 	regs[3] |= MDMCFG1_FEC_EN;
 #endif
-#if (!CC1101_OPTIMISE_SENS && CC1101_BAUD < 250000)
+#if (!defined(CC1101_OPTIMISE_SENS) && CC1101_AIR_BAUD < 250000)
 	regs[2] |= MDMCFG2_DCFILT_OFF;
 #endif
+#ifdef CC1101_EN_MANCHESTER
+	regs[2] |= MDMCFG2_MANCHESTER_EN;
+#endif
+
 
 	Exponent_t deviation = Exponent_Encode(DEVIATN_DIVIDER(CC1101_DEV_KHZ), 3, 3);
 	regs[5] = deviation.m | (deviation.e << 4);					// DEVIATN
@@ -462,11 +465,11 @@ static void CC1101_EnterRx(void)
 {
 	uint8_t nop = CMD_SNOP;
 	uint8_t status;
-	uint32_t now = HAL_GetTick();
-	while (HAL_GetTick() - now < ENTER_RX_TIMEOUT)
+	uint32_t now = CORE_GetTick();
+	while (CORE_GetTick() - now < ENTER_RX_TIMEOUT)
 	{
 		CC1101_Select();
-		SPI_Transfer( CC1101_SPI, &nop, &status, 1);
+		SPI_Transfer(CC1101_SPI, &nop, &status, 1);
 		CC1101_Deselect();
 
 		switch (STATUS_TO_STATE(status))
@@ -511,11 +514,11 @@ static inline void CC1101_ResetRx(void)
 static void CC1101_Reset(void)
 {
 	CC1101_Select();
-	HAL_Delay(1);
+	CORE_Delay(1);
 	CC1101_Deselect();
-	HAL_Delay(1);
+	CORE_Delay(1);
 	CC1101_Command(CMD_SRES);
-	HAL_Delay(5);
+	CORE_Delay(5);
 }
 
 static void CC1101_Command(uint8_t cmd)
@@ -535,16 +538,6 @@ static uint8_t CC1101_ReadStatus(uint8_t stat)
 	SPI_Transfer(CC1101_SPI, data, data, sizeof(data));
 	CC1101_Deselect();
 	return data[1];
-}
-
-static inline void CC1101_SPIStart(void)
-{
-	SPI_Init(CC1101_SPI, SPI_BITRATE, SPI_Mode_0);
-}
-
-static inline void CC1101_SPIStop(void)
-{
-	SPI_Deinit(CC1101_SPI);
 }
 
 static void CC1101_WriteRegs(uint8_t reg, const uint8_t * data, uint8_t count)
@@ -569,8 +562,8 @@ static bool CC1101_Select(void)
 {
 	GPIO_Reset(CC1101_CS_GPIO, CC1101_CS_PIN);
 
-	uint32_t now = HAL_GetTick();
-	while (HAL_GetTick() - now < 2)
+	uint32_t now = CORE_GetTick();
+	while (CORE_GetTick() - now < 2)
 	{
 		if (!GPIO_Read(CC1101_MISO_GPIO, CC1101_MISO_PIN))
 		{
