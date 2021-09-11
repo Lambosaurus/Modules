@@ -1,13 +1,10 @@
-
+#include "LIS2DH.h"
 #include "GPIO.h"
 #include "SPI.h"
-#include "LIS2DH.h"
 
 /*
  * PRIVATE DEFINITIONS
- */
-
-#define SPI_BITRATE	10000000 // 10MHz
+ */	
 
 #define ADDR_WRITE		0x00
 #define ADDR_READ		0x80
@@ -139,13 +136,11 @@
 
 static inline void LIS2_Select(void);
 static inline void LIS2_Deselect(void);
-static inline void LIS2_SPIStart(void);
-static inline void LIS2_SPIStop(void);
 
 static void LIS2_WriteRegs(uint8_t reg, const uint8_t * data, uint8_t count);
 static void LIS2_ReadRegs(uint8_t reg, uint8_t * data, uint8_t count);
-static uint8_t LIS2_ReadReg(uint8_t reg);
-static void LIS2_WriteReg(uint8_t reg, uint8_t data);
+static inline uint8_t LIS2_ReadReg(uint8_t reg);
+static inline void LIS2_WriteReg(uint8_t reg, uint8_t data);
 
 static void LIS2_INT_IRQHandler(void);
 
@@ -172,8 +167,6 @@ bool LIS2_Init(const LIS2_Config_t * cfg)
 	gCfg.int_set = false;
 	GPIO_EnableInput(LIS2_INT_GPIO, LIS2_INT_PIN, GPIO_Pull_None);
 	GPIO_OnChange(LIS2_INT_GPIO, LIS2_INT_PIN, GPIO_IT_Falling, LIS2_INT_IRQHandler);
-
-	LIS2_SPIStart();
 
 	bool success = LIS2_ReadReg(REG_WHOAMI) == WHOAMI_VALUE;
 	if (success)
@@ -243,22 +236,11 @@ bool LIS2_Init(const LIS2_Config_t * cfg)
 		ctrl[3] |= LIS2_CR4_GetFS(gCfg.scale_g); //| CR4_BDU_EN;
 		ctrl[5] |= CR6_L_ACTIVE;
 
-		/*
-		ctrl[0] = CR1_ODR_200HZ | CR1_Z_EN | CR1_Y_EN | CR1_X_EN;
-		ctrl[1] = 0;
-		ctrl[2] = CR3_I1_DRDY1;
-		ctrl[3] = CR4_FS_2G | CR4_HR_EN;
-		ctrl[4] = 0x00;
-		ctrl[5] = CR6_L_ACTIVE;
-		*/
-
 		LIS2_WriteRegs(REG_CTRL1, ctrl, sizeof(ctrl));
 		LIS2_WriteReg(REG_INT1_THS, threshold );
 		LIS2_WriteReg(REG_INT1_CFG, i1cfg );
 		LIS2_WriteReg(REG_INT1_DUR, 0 );
 	}
-
-	LIS2_SPIStop();
 
 	return success;
 }
@@ -268,9 +250,7 @@ void LIS2_Deinit(void)
 	GPIO_Deinit(LIS2_INT_GPIO, LIS2_INT_PIN);
 
 	uint8_t ctrl[6] = {0};
-	LIS2_SPIStart();
 	LIS2_WriteRegs(REG_CTRL1, ctrl, sizeof(ctrl));
-	LIS2_SPIStop();
 }
 
 bool LIS2_IsIntSet(void)
@@ -283,9 +263,7 @@ void LIS2_Read(LIS2_Accel_t * acc)
 	gCfg.int_set = false;
 
 	uint8_t data[6];
-	LIS2_SPIStart();
 	LIS2_ReadRegs(REG_OUT_X_L, data, sizeof(data));
-	LIS2_SPIStop();
 
 	uint16_t scale = gCfg.data_scale;
 
@@ -345,26 +323,16 @@ static void LIS2_ReadRegs(uint8_t reg, uint8_t * data, uint8_t count)
 	LIS2_Deselect();
 }
 
-static uint8_t LIS2_ReadReg(uint8_t reg)
+static inline uint8_t LIS2_ReadReg(uint8_t reg)
 {
 	uint8_t v;
 	LIS2_ReadRegs(reg, &v, 1);
 	return v;
 }
 
-static void LIS2_WriteReg(uint8_t reg, uint8_t data)
+static inline void LIS2_WriteReg(uint8_t reg, uint8_t data)
 {
 	LIS2_WriteRegs(reg, &data, 1);
-}
-
-static inline void LIS2_SPIStart(void)
-{
-	SPI_Init(LIS2_SPI, SPI_BITRATE, SPI_Mode_0);
-}
-
-static inline void LIS2_SPIStop(void)
-{
-	SPI_Deinit(LIS2_SPI);
 }
 
 static inline void LIS2_Select(void)

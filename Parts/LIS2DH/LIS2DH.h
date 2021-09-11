@@ -1,11 +1,13 @@
 #ifndef LIS2DH_H
 #define LIS2DH_H
 
-#include "Board.h"
+#include "STM32X.h"
 
 /*
  * PUBLIC DEFINITIONS
  */
+
+#define LIS2_SPI_BITRATE	10000000 // 10MHz
 
 /*
  * PUBLIC TYPES
@@ -19,8 +21,14 @@ typedef enum {
 
 typedef enum {
 	LIS2_IntSrc_None 		= 0,
+
+	// This will interrupt on every conversion
 	LIS2_IntSrc_DataReady 	= 1,
+
+	// This configures the threshold as a delta, not an absolute
 	LIS2_IntSrc_Shock 		= 2,
+
+	// The axes for threshold detection are individually enabled
 	LIS2_IntSrc_X 			= 0x100,
 	LIS2_IntSrc_Y 			= 0x200,
 	LIS2_IntSrc_Z 			= 0x400,
@@ -30,11 +38,12 @@ typedef enum {
 typedef struct {
 	LIS2_Res_t resolution;
 	LIS2_IntSrc_t int_src;
-	uint8_t scale_g;
-	uint16_t frequency;
-	uint16_t threshold;
+	uint8_t scale_g;		// +/- 2, 4, 8 or 16G
+	uint16_t frequency;		// This will be truncated to the nearest available rate
+	uint16_t threshold;		// in mG
 } LIS2_Config_t;
 
+// All axes in mG
 typedef struct {
 	int16_t x;
 	int16_t y;
