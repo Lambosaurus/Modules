@@ -29,7 +29,6 @@ while (1)
     CORE_Delay(100);
 }
 ```
-```
 
 ## Board
 
