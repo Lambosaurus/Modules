@@ -1,14 +1,29 @@
 #include "LIS2DH.h"
 #include "GPIO.h"
+
+#ifdef LIS2_SPI
 #include "SPI.h"
+#else //LIS2_I2C
+#include "I2C.h"
+#endif
 
 /*
  * PRIVATE DEFINITIONS
  */	
 
+// I2C only
+#ifdef LIS2_SPI
+
 #define ADDR_WRITE		0x00
 #define ADDR_READ		0x80
 #define ADDR_BURST		0x40
+
+#else //LIS2_I2C
+
+#define LIS2_ADDR		0x18
+#define ADDR_BURST		0x80
+
+#endif
 
 #define REG_STAT_AUX	0x07
 #define REG_OUT_TEMP_L	0x0C
@@ -126,6 +141,7 @@
 #define INT_CFG_X_L			0x01
 #define INT_CFG_XYZ_H		(INT_CFG_Z_H | INT_CFG_Y_H | INT_CFG_X_H)
 
+
 /*
  * PRIVATE TYPES
  */
@@ -133,9 +149,6 @@
 /*
  * PRIVATE PROTOTYPES
  */
-
-static inline void LIS2_Select(void);
-static inline void LIS2_Deselect(void);
 
 static void LIS2_WriteRegs(uint8_t reg, const uint8_t * data, uint8_t count);
 static void LIS2_ReadRegs(uint8_t reg, uint8_t * data, uint8_t count);
@@ -163,7 +176,9 @@ static struct {
 
 bool LIS2_Init(const LIS2_Config_t * cfg)
 {
+#ifdef LIS2_SPI
 	GPIO_EnableOutput(LIS2_CS_GPIO, LIS2_CS_PIN, GPIO_PIN_SET);
+#endif
 	gCfg.int_set = false;
 	GPIO_EnableInput(LIS2_INT_GPIO, LIS2_INT_PIN, GPIO_Pull_None);
 	GPIO_OnChange(LIS2_INT_GPIO, LIS2_INT_PIN, GPIO_IT_Falling, LIS2_INT_IRQHandler);
@@ -305,6 +320,30 @@ static uint8_t LIS2_CR4_GetFS(uint8_t s)
 	else 					{ return CR4_FS_16G; }
 }
 
+static inline uint8_t LIS2_ReadReg(uint8_t reg)
+{
+	uint8_t v;
+	LIS2_ReadRegs(reg, &v, 1);
+	return v;
+}
+
+static inline void LIS2_WriteReg(uint8_t reg, uint8_t data)
+{
+	LIS2_WriteRegs(reg, &data, 1);
+}
+
+#ifdef LIS2_SPI
+
+static inline void LIS2_Select(void)
+{
+	GPIO_Reset(LIS2_CS_GPIO, LIS2_CS_PIN);
+}
+
+static inline void LIS2_Deselect(void)
+{
+	GPIO_Set(LIS2_CS_GPIO, LIS2_CS_PIN);
+}
+
 static void LIS2_WriteRegs(uint8_t reg, const uint8_t * data, uint8_t count)
 {
 	uint8_t header = reg | ADDR_WRITE | ADDR_BURST;
@@ -323,27 +362,29 @@ static void LIS2_ReadRegs(uint8_t reg, uint8_t * data, uint8_t count)
 	LIS2_Deselect();
 }
 
-static inline uint8_t LIS2_ReadReg(uint8_t reg)
+#else // LIS2_I2C
+
+static void LIS2_WriteRegs(uint8_t reg, const uint8_t * data, uint8_t count)
 {
-	uint8_t v;
-	LIS2_ReadRegs(reg, &v, 1);
-	return v;
+	// Ignore the error
+
+	uint8_t tx[count + 1];
+	tx[0] = reg | ADDR_BURST;
+	memcpy(tx+1, data, count);
+	I2C_Write(LIS2_I2C, LIS2_ADDR, tx, count+1);
 }
 
-static inline void LIS2_WriteReg(uint8_t reg, uint8_t data)
+static void LIS2_ReadRegs(uint8_t reg, uint8_t * data, uint8_t count)
 {
-	LIS2_WriteRegs(reg, &data, 1);
+	uint8_t tx = reg | ADDR_BURST;
+	if (!I2C_Transfer(LIS2_I2C, LIS2_ADDR, &tx, 1, data, count))
+	{
+		// If the I2C transfer failed - then zero everything out to at least make behavior well defined.
+		bzero(data, count);
+	}
 }
 
-static inline void LIS2_Select(void)
-{
-	GPIO_Reset(LIS2_CS_GPIO, LIS2_CS_PIN);
-}
-
-static inline void LIS2_Deselect(void)
-{
-	GPIO_Set(LIS2_CS_GPIO, LIS2_CS_PIN);
-}
+#endif
 
 /*
  * INTERRUPT ROUTINES
