@@ -63,6 +63,7 @@ The following template can be used for SPI mode
 #define LIS2_CS_PIN         GPIO_PIN_0
 #define LIS2_INT_GPIO       GPIOA
 #define LIS2_INT_PIN        GPIO_PIN_1
+#define GPIO_IRQ1_ENABLE
 
 // Configure SPI1
 #define SPI1_GPIO		    GPIOB
@@ -78,6 +79,7 @@ The following template can be used for I2C mode
 #define LIS2_SPI            SPI_1
 #define LIS2_INT_GPIO       GPIOA
 #define LIS2_INT_PIN        GPIO_PIN_1
+#define GPIO_IRQ1_ENABLE
 
 // Configure I2C1
 #define I2C1_GPIO		    GPIOB
