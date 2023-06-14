@@ -7,7 +7,7 @@ The default targets a button connected to ground, though an advanced init functi
 ```C
 
 Button_t b;
-Button_Init(&b, GPIOA, GPIO_PIN_0);
+Button_Init(&b, PA0);
 
 while (1)
 {

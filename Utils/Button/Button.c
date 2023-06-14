@@ -1,5 +1,6 @@
 
 #include "Button.h"
+#include "Core.h"
 #include "GPIO.h"
 
 /*
@@ -28,28 +29,24 @@ static inline bool Button_IsHeld(Button_t * btn);
  * PUBLIC FUNCTIONS
  */
 
-void Button_Init(Button_t * btn, GPIO_t * gpio, uint32_t pin)
+void Button_Init(Button_t * btn, GPIO_Pin_t pin)
 {
-	Button_InitAdv(btn, gpio, pin, GPIO_Pull_None, false);
+	Button_InitAdv(btn, pin, GPIO_Pull_Up, false);
 }
 
-void Button_InitAdv(Button_t * btn, GPIO_t * gpio, uint32_t pin, GPIO_Pull_t pull, GPIO_State_t heldState)
+void Button_InitAdv(Button_t * btn, GPIO_Pin_t pin, GPIO_Pull_t pull, GPIO_State_t heldState)
 {
-	GPIO_EnableInput(gpio, pin, pull);
+	GPIO_EnableInput(pin, pull);
 
-	btn->gpio = gpio;
 	btn->pin = pin;
 	btn->heldState = heldState;
-	btn->state = Button_IsHeld(btn) ? BTN_Held : BTN_None;
+	btn->state = Button_IsHeld(btn) ? Button_State_Held : Button_State_None;
 	btn->changeTime = CORE_GetTick();
 }
 
 void Button_Deinit(Button_t * btn)
 {
-	if (btn->gpio != NULL)
-	{
-		GPIO_Deinit(btn->gpio, btn->pin);
-	}
+	GPIO_Deinit(btn->pin);
 }
 
 Button_State_t Button_Update(Button_t * btn)
@@ -82,7 +79,7 @@ Button_State_t Button_Update(Button_t * btn)
 
 static inline bool Button_IsHeld(Button_t * btn)
 {
-	return GPIO_Read(btn->gpio, btn->pin) == btn->heldState;
+	return GPIO_Read(btn->pin) == btn->heldState;
 }
 
 /*
