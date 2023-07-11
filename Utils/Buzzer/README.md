@@ -27,8 +27,7 @@ The following template can be used.
 
 ```C
 // Configure buzzer module
-#define BUZZER_GPIO			GPIOA
-#define BUZZER_PIN			GPIO_PIN_6
+#define BUZZER_PIN			PA6
 #define BUZZER_TIM			TIM_22
 #define BUZZER_TIM_CH		TIM_CH1
 #define BUZZER_PIN_AF		GPIO_AF5_TIM22

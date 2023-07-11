@@ -49,7 +49,7 @@ static uint8_t gTCON = 0xFF;
 
 bool MCP425_Init(void)
 {
-	GPIO_EnableOutput(MCP425_CS_GPIO, MCP425_CS_PIN, GPIO_PIN_SET);
+	GPIO_EnableOutput(MCP425_CS_PIN, GPIO_PIN_SET);
 
 	uint32_t status = MCP425_Read(MCP425_REG_STAT);
 	return (status & 0x02) == 0;
@@ -57,7 +57,7 @@ bool MCP425_Init(void)
 
 void MCP425_Deinit(void)
 {
-	GPIO_Deinit(MCP425_CS_GPIO, MCP425_CS_PIN);
+	GPIO_Deinit(MCP425_CS_PIN);
 }
 
 void MCP425_SetTerminals(uint8_t ch, MCP425_Terminal_t tcon)
@@ -130,12 +130,12 @@ static void MCP425_Write(uint32_t reg, uint32_t value)
 
 static inline void MCP425_Select(void)
 {
-	GPIO_Reset(MCP425_CS_GPIO, MCP425_CS_PIN);
+	GPIO_Reset(MCP425_CS_PIN);
 }
 
 static inline void MCP425_Deselect(void)
 {
-	GPIO_Set(MCP425_CS_GPIO, MCP425_CS_PIN);
+	GPIO_Set(MCP425_CS_PIN);
 }
 
 /*

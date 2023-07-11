@@ -59,7 +59,7 @@ void Buzzer_Play(const Note_t * notes, uint16_t count)
 	gState.notes = notes;
 
 	TIM_Init(BUZZER_TIM, 10, 10);
-	TIM_EnablePwm(BUZZER_TIM, BUZZER_TIM_CH, BUZZER_GPIO, BUZZER_PIN, BUZZER_PIN_AF);
+	TIM_EnablePwm(BUZZER_TIM, BUZZER_TIM_CH, BUZZER_PIN, BUZZER_PIN_AF);
 
 	Buzzer_StartNote(gState.notes);
 }

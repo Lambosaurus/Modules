@@ -177,11 +177,11 @@ static struct {
 bool LIS2_Init(const LIS2_Config_t * cfg)
 {
 #ifdef LIS2_SPI
-	GPIO_EnableOutput(LIS2_CS_GPIO, LIS2_CS_PIN, GPIO_PIN_SET);
+	GPIO_EnableOutput(LIS2_CS_PIN, GPIO_PIN_SET);
 #endif
 	gCfg.int_set = false;
-	GPIO_EnableInput(LIS2_INT_GPIO, LIS2_INT_PIN, GPIO_Pull_None);
-	GPIO_OnChange(LIS2_INT_GPIO, LIS2_INT_PIN, GPIO_IT_Falling, LIS2_INT_IRQHandler);
+	GPIO_EnableInput(LIS2_INT_PIN, GPIO_Pull_None);
+	GPIO_OnChange(LIS2_INT_PIN, GPIO_IT_Falling, LIS2_INT_IRQHandler);
 
 	bool success = LIS2_ReadReg(REG_WHOAMI) == WHOAMI_VALUE;
 	if (success)
@@ -262,7 +262,7 @@ bool LIS2_Init(const LIS2_Config_t * cfg)
 
 void LIS2_Deinit(void)
 {
-	GPIO_Deinit(LIS2_INT_GPIO, LIS2_INT_PIN);
+	GPIO_Deinit(LIS2_INT_PIN);
 
 	uint8_t ctrl[6] = {0};
 	LIS2_WriteRegs(REG_CTRL1, ctrl, sizeof(ctrl));
@@ -270,7 +270,7 @@ void LIS2_Deinit(void)
 
 bool LIS2_IsIntSet(void)
 {
-	return gCfg.int_set || !GPIO_Read(LIS2_INT_GPIO, LIS2_INT_PIN);
+	return gCfg.int_set || !GPIO_Read(LIS2_INT_PIN);
 }
 
 void LIS2_Read(LIS2_Accel_t * acc)
@@ -336,12 +336,12 @@ static inline void LIS2_WriteReg(uint8_t reg, uint8_t data)
 
 static inline void LIS2_Select(void)
 {
-	GPIO_Reset(LIS2_CS_GPIO, LIS2_CS_PIN);
+	GPIO_Reset(LIS2_CS_PIN);
 }
 
 static inline void LIS2_Deselect(void)
 {
-	GPIO_Set(LIS2_CS_GPIO, LIS2_CS_PIN);
+	GPIO_Set(LIS2_CS_PIN);
 }
 
 static void LIS2_WriteRegs(uint8_t reg, const uint8_t * data, uint8_t count)

@@ -81,19 +81,14 @@ The following template can be used. Optional config are commented out.
 //#define CC1101_OPTIMISE_SENS
 
 // CC1101 interface
-#define CC1101_CS_GPIO      GPIOA
-#define CC1101_CS_PIN       GPIO_PIN_1
-#define CC1101_GD0_GPIO     GPIOA
-#define CC1101_GD0_PIN      GPIO_PIN_0
-#define CC1101_MISO_GPIO    GPIOB
-#define CC1101_MISO_PIN     GPIO_PIN_4 // Required to sense part ready
+#define CC1101_CS_PIN       PA1
+#define CC1101_GD0_PIN      PA0
+#define CC1101_MISO_PIN     PB4 // Required to sense part ready
 #define CC1101_SPI          SPI_1
 
 // Configure SPI1
-#define SPI1_GPIO		    GPIOB
-#define SPI1_PINS		    (GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5)
+#define SPI1_PINS		    (PB3 | PB4 | PB5)
 #define SPI1_AF			    GPIO_AF0_SPI1
-#define SPI1_ENABLE
 ```
 
 ## Future work

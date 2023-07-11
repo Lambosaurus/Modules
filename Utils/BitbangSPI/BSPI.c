@@ -29,8 +29,8 @@ static uint8_t BSPI_Xfer(uint8_t data);
 
 void BSPI_Init(uint32_t bitrate)
 {
-	GPIO_EnableInput(BSPI_GPIO, BSPI_MISO, GPIO_Pull_None);
-	GPIO_EnableOutput(BSPI_GPIO, BSPI_MOSI | BSPI_SCK, GPIO_PIN_SET);
+	GPIO_EnableInput(BSPI_MISO, GPIO_Pull_None);
+	GPIO_EnableOutput(BSPI_MOSI | BSPI_SCK, GPIO_PIN_SET);
 
 	gBitDelay = 1000000 / (bitrate * 2);
 	if (gBitDelay == 0)
@@ -41,7 +41,7 @@ void BSPI_Init(uint32_t bitrate)
 
 void BSPI_Deinit(void)
 {
-	GPIO_Deinit(BSPI_GPIO, BSPI_MISO | BSPI_MOSI | BSPI_SCK);
+	GPIO_Deinit(BSPI_MISO | BSPI_MOSI | BSPI_SCK);
 }
 
 void BSPI_Write(const uint8_t * data, uint32_t count)
@@ -78,11 +78,11 @@ static uint8_t BSPI_Xfer(uint8_t data)
 
 	for (uint32_t b = (1 << 7); b > 0; b >>= 1)
 	{
-		GPIO_Reset(BSPI_GPIO, BSPI_SCK);
-		GPIO_Write(BSPI_GPIO, BSPI_MOSI, data & b);
+		GPIO_Reset(BSPI_SCK);
+		GPIO_Write(BSPI_MOSI, data & b);
 		US_Delay(gBitDelay);
-		if (GPIO_Read(BSPI_GPIO, BSPI_MISO)) { rx |= b; }
-		GPIO_Set(BSPI_GPIO, BSPI_SCK);
+		if (GPIO_Read(BSPI_MISO)) { rx |= b; }
+		GPIO_Set(BSPI_SCK);
 		US_Delay(gBitDelay);
 	}
 

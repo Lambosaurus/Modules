@@ -25,8 +25,7 @@ The following template can be used.
 
 ```C
 // Configure bit banged SPI
-#define BSPI_GPIO		GPIOA
-#define BSPI_MISO		GPIO_PIN_4
-#define BSPI_MOSI		GPIO_PIN_7
-#define BSPI_SCK		GPIO_PIN_6
+#define BSPI_MISO		PA4
+#define BSPI_MOSI		PA7
+#define BSPI_SCK		PA6
 ```
