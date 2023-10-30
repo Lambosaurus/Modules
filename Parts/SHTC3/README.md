@@ -3,7 +3,7 @@ Support for the Sensiron SHTC3 temperature and humidity sensor.
 This uses an I2C inteface.
 
 ## Usage
-Note that the SPI enable/disable is the responsibility of the user.
+Note that the I2C enable/disable is the responsibility of the user.
 
 The following example initialises the part, and reads out the temp & humidity.
 
