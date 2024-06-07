@@ -8,6 +8,15 @@
  * PUBLIC DEFINITIONS
  */
 
+// Select defaults for seed strategy and algorithim.
+#if !(defined(RANDOM_SEED_UID) || defined(RANDOM_SEED_TEMP))
+#define RANDOM_SEED_MANUAL
+#endif
+
+#if (!defined(RANDOM_ALG_TMT))
+#define RANDOM_ALG_LCG
+#endif
+
 /*
  * PUBLIC TYPES
  */
@@ -16,7 +25,11 @@
  * PUBLIC FUNCTIONS
  */
 
+#ifdef RANDOM_SEED_MANUAL
+void Random_Seed(uint32_t seed);
+#else
 void Random_Seed(void);
+#endif
 
 uint32_t Random_Read(void);
 
