@@ -1,10 +1,12 @@
 #include "Buzzer.h"
+#include "Core.h"
 #include "TIM.h"
 
 /*
  * PRIVATE DEFINITIONS
  */
 
+#define DUTY_MAX		10
 
 /*
  * PRIVATE TYPES
@@ -58,7 +60,7 @@ void Buzzer_Play(const Note_t * notes, uint16_t count)
 	gState.index = 0;
 	gState.notes = notes;
 
-	TIM_Init(BUZZER_TIM, 10, 10);
+	TIM_Init(BUZZER_TIM, 1000, DUTY_MAX - 1);
 	TIM_EnablePwm(BUZZER_TIM, BUZZER_TIM_CH, BUZZER_PIN, BUZZER_PIN_AF);
 
 	Buzzer_StartNote(gState.notes);
@@ -68,6 +70,7 @@ void Buzzer_Halt(void)
 {
 	TIM_Stop(BUZZER_TIM);
 	TIM_Deinit(BUZZER_TIM);
+	GPIO_Deinit(BUZZER_PIN);
 
 	gState.count = 0;
 }
@@ -112,8 +115,8 @@ void Buzzer_StartNote(const Note_t * note)
 	}
 	else
 	{
-		TIM_SetPulse(BUZZER_TIM, BUZZER_TIM_CH, 5);
-		TIM_SetFreq(BUZZER_TIM, note->freq * 10);
+		TIM_SetPulse(BUZZER_TIM, BUZZER_TIM_CH, DUTY_MAX / 2);
+		TIM_SetFreq(BUZZER_TIM, note->freq * DUTY_MAX);
 	}
 	TIM_Start(BUZZER_TIM);
 }
