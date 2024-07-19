@@ -55,6 +55,12 @@ For example: `W25X20_Erase(4 * 1024, 128 * 1024);` will use the following sequen
 3. 1x 64K erase command
 4. 1x 4K erase command
 
+## Power management
+
+The W25X20 needs to be put into powerdown mode to minimize power consumption.
+Use `W25X20_Deinit` to achieve this. Note that this does not deinit the CS pin by default.
+
+
 ## Board
 
 The module is dependant on  definitions within `Board.h`

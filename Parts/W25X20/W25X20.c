@@ -70,11 +70,15 @@ static void W25X20_EraseCommand(uint8_t erase_cmd, uint32_t addr);
 void W25X20_Init(void)
 {
 	GPIO_EnableOutput(W25X20_CS_PIN, GPIO_PIN_SET);
+	W25X20_Command(W25X20_CMD_RELEASE_PDOWN);
 }
 
 void W25X20_Deinit(void)
 {
+	W25X20_Command(W25X20_CMD_PDOWN);
+#ifdef W25X20_DEINIT_CS
 	GPIO_Deinit(W25X20_CS_PIN);
+#endif //W25X20_DEINIT_CS
 }
 
 void W25X20_Read(uint32_t addr, uint8_t * data, uint32_t size)
