@@ -163,8 +163,13 @@ The following template can be used.
 Commented out definitions are optional.
 
 ```C
+// UART config
+#define UART1_PINS	 		    (PA9 | PA10)
+#define UART1_AF		 	    GPIO_AF4_USART1
+
+// AT config
 #define AT_BAUD				    115200
-#define AT_UART				    BG95_UART
+#define AT_UART				    UART_1
 //#define AT_CMD_PREFIX		    "AT"
 //#define AT_CMD_SUFFIX		    "\r\n"
 //#define AT_TX_BFR			    128
