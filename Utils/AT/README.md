@@ -6,7 +6,7 @@ It aims to allow you to produce code that is safe and easy to reason about, whil
 # Usage
 
 This is expected to be run within a state machine, where each state is called repeatedly until the state is advanced.
-All functions are designed to be run repeatedly, and will internally track their state.
+All functions are designed to be called repeatedly while their state is true.
 
 The snippet below shows a common use case.
 

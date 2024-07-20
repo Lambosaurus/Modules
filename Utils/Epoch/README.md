@@ -1,7 +1,5 @@
 # Epoch
-This proved methods for converting a RTC datetime into a seconds epoch.
-
-It is dependant on the STM32X RTC libarry.
+Converts a RTC datetime into a seconds epoch.
 
 ## Usage
 
