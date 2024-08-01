@@ -72,6 +72,6 @@ if (D1W_ReadRom(rom))
 D1W_Deinit();
 ```
 
-## Dependancies
+## Dependencies
 
-This is dependant on the CRCX module for its CRC8 implementation.
+This is dependent on the [CRCX](../../Utils/CRCX) module for its CRC8 implementation.
