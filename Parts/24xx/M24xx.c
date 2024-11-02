@@ -13,7 +13,7 @@
 #if (M24XX_SERIES == 0)				// 16 B
 #define M24XX_ADDR_BITS				4
 #define M24_PAGE_SIZE				16
-#elif (M24XX_SERIES == 1)				// 128 B
+#elif (M24XX_SERIES == 1)			// 128 B
 #define M24XX_ADDR_BITS				7
 #define M24_PAGE_SIZE				8
 #elif (M24XX_SERIES == 2)			// 256 B
@@ -50,14 +50,23 @@
 #error "Unknown 24xx series"
 #endif
 
-
 #if (M24XX_SERIES <= 16)
 #define M24XX_ADDR_SIZE				1
 #else
 #define M24XX_ADDR_SIZE				2
 #endif
 
-#define M24XX_BLOCK_ADDR(_addr)		(M24XX_ADDR | ((_addr >> (M24XX_ADDR_SIZE * 8)) & 0x7))
+#if (M24XX_SERIES == 1024)
+// For this part, the address order is inconvenient - the block address is the high bit.
+#define M24XX_DEV_ADDR(_addr) 		(M24XX_ADDR | (((_addr) >> 14) & 0x04) | (((_addr) >> 17) & 0x03))
+#elif (M24XX_ADDR_BITS > M24XX_ADDR_SIZE * 8)
+// For these devices, there is more addressable memory than the address byte allows.
+// Some or all of the A[2:0] bits are used as block addresses
+#define M24XX_DEV_ADDR(_addr)		(M24XX_ADDR | ((_addr >> (M24XX_ADDR_SIZE * 8)) & 0x7))
+#else
+// The address bits A[2:0] are used to select chained devices
+#define M24XX_DEV_ADDR(_addr)		(M24XX_ADDR | ((_addr >> M24XX_ADDR_BITS) & 0x7))
+#endif
 
 
 /*
@@ -68,7 +77,7 @@
  * PRIVATE PROTOTYPES
  */
 
-static bool M24xx_WaitForIdle(void);
+static bool M24xx_WaitForIdle(uint8_t device);
 
 /*
  * PRIVATE VARIABLES
@@ -80,7 +89,7 @@ static bool M24xx_WaitForIdle(void);
 
 bool M24xx_Init(void)
 {
-	return M24xx_WaitForIdle();
+	return M24xx_WaitForIdle( M24XX_DEV_ADDR(0) );
 }
 
 bool M24xx_Write(uint32_t pos, const uint8_t * bfr, uint32_t size)
@@ -94,15 +103,16 @@ bool M24xx_Write(uint32_t pos, const uint8_t * bfr, uint32_t size)
 
 		// Start address followed by data
 		uint8_t tx[M24_PAGE_SIZE + M24XX_ADDR_SIZE];
-#if (M24XX_ADDR_SIZE == 1)
-		tx[0] = (uint8_t)pos;
-#else // (M24XX_ADDR_SIZE == 2)
+#if (M24XX_ADDR_SIZE == 2)
 		tx[0] = (uint8_t)(pos >> 8);
 		tx[1] = (uint8_t)pos;
+#else
+		tx[0] = (uint8_t)pos;
 #endif
 		memcpy(tx + M24XX_ADDR_SIZE, bfr, length);
 
-		if (!(M24xx_WaitForIdle() && I2C_Write(M24XX_I2C, M24XX_BLOCK_ADDR(pos), tx, length + M24XX_ADDR_SIZE)))
+		uint8_t device = M24XX_DEV_ADDR(pos);
+		if (!(M24xx_WaitForIdle(device) && I2C_Write(M24XX_I2C, device, tx, length + M24XX_ADDR_SIZE)))
 		{
 			return false;
 		}
@@ -115,12 +125,18 @@ bool M24xx_Write(uint32_t pos, const uint8_t * bfr, uint32_t size)
 
 bool M24xx_Read(uint32_t pos, uint8_t * bfr, uint32_t size)
 {
-	if (!M24xx_WaitForIdle()) { return false; }
+	uint8_t device = M24XX_DEV_ADDR(pos);
+	if (!M24xx_WaitForIdle(device)) { return false; }
 
 	// A read starts by writing the destination address
-	uint8_t tx[1] = { pos };
+	uint8_t tx[M24XX_ADDR_SIZE] = {
+#if (M24XX_ADDR_SIZE == 2)
+		(uint8_t)(pos >> 8),
+#endif
+		(uint8_t)pos
+	};
 
-	return I2C_Transfer(M24XX_I2C, M24XX_BLOCK_ADDR(pos),
+	return I2C_Transfer(M24XX_I2C, device,
 			tx, sizeof(tx), // Write buffer
 			bfr, size       // Read buffer
 			);
@@ -130,13 +146,13 @@ bool M24xx_Read(uint32_t pos, uint8_t * bfr, uint32_t size)
  * PRIVATE FUNCTIONS
  */
 
-static bool M24xx_WaitForIdle(void)
+static bool M24xx_WaitForIdle(uint8_t device)
 {
 	uint32_t start = CORE_GetTick();
 	while (CORE_GetTick() - start < M24XX_TIMEOUT)
 	{
 		// IC will not ack if busy
-		if (I2C_Scan(M24XX_I2C, M24XX_ADDR))
+		if (I2C_Scan(M24XX_I2C, device))
 		{
 			return true;
 		}
