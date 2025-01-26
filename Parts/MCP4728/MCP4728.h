@@ -13,7 +13,7 @@
  */
 
 #define MCP4728_BITS		12
-#define MCP4728_RES			((1 << MCP4728_BITS) - 1)
+#define MCP4728_MAX			((1 << MCP4728_BITS) - 1)
 
 /*
  * PUBLIC TYPES
