@@ -72,7 +72,6 @@ The following template can be used.
 #define W25X20_SPI			SPI_1
 #define W25X20_CS_PIN		PA0
 
-
 // Configure SPI1
 #define SPI1_PINS		    (PA5 | PA6 | PA7)
 #define SPI1_AF				GPIO_AF0_SPI1
