@@ -13,7 +13,7 @@
 #define RANDOM_SEED_MANUAL
 #endif
 
-#if (!defined(RANDOM_ALG_TMT))
+#if !(defined(RANDOM_ALG_TMT) || defined(RANDOM_ALG_MUL))
 #define RANDOM_ALG_LCG
 #endif
 

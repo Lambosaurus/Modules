@@ -29,8 +29,9 @@ The random algorithim can be selected from the following definitions. The LCG st
 
 | Strategy | #define    | Comment |
 | -------- | ---------- | ------- |
-| LCG   | `RANDOM_ALG_LCG` | A Linear Congruential Generator. This is small and fast. The same implementation used by glibc. |
-| TinyMT32      | `RANDOM_ALG_TMT`    | TinyMT32 implementation will be used. This is a little slower, but performs very well. See [TinyMT github](https://github.com/MersenneTwister-Lab/TinyMT/tree/master) for more info. |
+| LCG      | `RANDOM_ALG_LCG` | A Linear Congruential Generator. This is small and fast. The same implementation used by glibc. |
+| TinyMT32 | `RANDOM_ALG_TMT`   | TinyMT32 implementation will be used. This is a little slower, but performs very well. See [TinyMT github](https://github.com/MersenneTwister-Lab/TinyMT/tree/master) for more info. |
+| Mulberry32 | `RANDOM_ALG_MUL` | Mullbery32 implementation. Small and fast. See [Mullbery32 gist](https://gist.github.com/tommyettinger/46a874533244883189143505d203312c). |
 
 ## Board
 

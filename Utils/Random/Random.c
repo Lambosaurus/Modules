@@ -89,6 +89,31 @@ static inline uint32_t Random_Algorithm_Next(void)
 #endif //RANDOM_ALG_LCG
 
 /*
+ * ALGORITHIM: MUL
+ * Mulberry32
+ * https://gist.github.com/tommyettinger/46a874533244883189143505d203312c
+ */
+
+#ifdef RANDOM_ALG_MUL
+
+static uint32_t gRandom;
+
+static inline void Random_Algorithm_Seed(uint32_t seed)
+{
+	gRandom = seed;
+}
+
+static inline uint32_t Random_Algorithm_Next(void)
+{
+	uint32_t z = (gRandom += 0x6D2B79F5UL);
+    z = (z ^ (z >> 15)) * (z | 1UL);
+    z ^= z + (z ^ (z >> 7)) * (z | 61UL);
+    return z ^ (z >> 14);
+}
+
+#endif //RANDOM_ALK_MUL
+
+/*
  * ALGORITHIM: TMT
  * Tiny variant of the Mersenne Twister
  * https://github.com/MersenneTwister-Lab/TinyMT
