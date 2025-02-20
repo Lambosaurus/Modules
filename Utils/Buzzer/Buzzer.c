@@ -24,7 +24,6 @@ void Buzzer_StartNote(const Note_t * note);
 
 struct {
 	uint16_t count;
-	uint16_t index;
 	const Note_t * notes;
 	struct {
 		uint32_t period;
@@ -57,13 +56,26 @@ void Buzzer_Play(const Note_t * notes, uint16_t count)
 	}
 
 	gState.count = count;
-	gState.index = 0;
 	gState.notes = notes;
 
 	TIM_Init(BUZZER_TIM, 1000, DUTY_MAX - 1);
 	TIM_EnablePwm(BUZZER_TIM, BUZZER_TIM_CH, BUZZER_PIN, BUZZER_PIN_AF);
 
 	Buzzer_StartNote(gState.notes);
+}
+
+void Buzzer_Beep(uint32_t freq, uint32_t duration)
+{
+	if (Buzzer_IsBusy())
+	{
+		Buzzer_Halt();
+	}
+	// Using a note on the stack is safe - so long as its a single note.
+	Note_t note = {
+		.freq = freq,
+		.duration = duration,
+	};
+	Buzzer_Play(&note, 1);
 }
 
 void Buzzer_Halt(void)
@@ -86,16 +98,15 @@ void Buzzer_Update(void)
 	{
 		if ((CORE_GetTick() - gState.timer.last) > gState.timer.period)
 		{
-			gState.index += 1;
-			if (gState.index < gState.count)
+			gState.count -= 1;
+			if (gState.count > 0)
 			{
 				TIM_Stop(BUZZER_TIM);
-				Buzzer_StartNote(gState.notes + gState.index);
+				Buzzer_StartNote(++gState.notes);
 			}
 			else
 			{
 				Buzzer_Halt();
-				gState.count = 0;
 			}
 		}
 	}
