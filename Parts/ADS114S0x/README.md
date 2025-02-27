@@ -1,4 +1,4 @@
-# 24LC04
+# ADS114S0x
 This implements support for the ADS114S06 and ADS114S08 ADC
 
 ## Usage
