@@ -22,7 +22,7 @@ void Buzzer_StartNote(const Note_t * note);
  * PRIVATE VARIABLES
  */
 
-struct {
+static struct {
 	uint16_t count;
 	const Note_t * notes;
 	struct {
