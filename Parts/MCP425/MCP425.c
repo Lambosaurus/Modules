@@ -123,7 +123,7 @@ static void MCP425_Write(uint32_t reg, uint32_t value)
 		value
 	};
 
-	BSPI_Write(MCP425_SPI, tx, sizeof(tx));
+	SPI_Write(MCP425_SPI, tx, sizeof(tx));
 
 	MCP425_Deselect();
 }
