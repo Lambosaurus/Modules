@@ -1,4 +1,4 @@
-# 24LC04
+# TCA9548
 This implements support for the TCA9548A I2C.
 
 This is probably compatabile with the PCA9548 and similar parts.
