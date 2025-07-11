@@ -182,7 +182,7 @@ uint8_t D1W_ReadByte(void)
 
 uint8_t D1W_CRC(const uint8_t * bfr, uint32_t size)
 {
-	return CRC8(0x00, 0x8C, bfr, size);
+	return CRC8R(0x00, 0x8C, bfr, size);
 }
 
 /*
