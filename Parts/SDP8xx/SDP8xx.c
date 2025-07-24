@@ -12,21 +12,8 @@
 #define SDP8XX_ADDR_A		0x25
 #define SDP8XX_ADDR_B		0x26
 
-
 #define SDP8XX_CMD_SLEEP				0x3677
-
-#define SDP8XX_CMD_CONT_MEAS_MF_ATR 	0x3603
-#define SDP8XX_CMD_CONT_MEAS_MF			0x3608
-#define SDP8XX_CMD_CONT_MEAS_ATR 		0x3615
-#define SDP8XX_CMD_CONT_MEAS			0x361E
-
 #define SDP8XX_CMD_CONT_MEAS_STOP		0x3FF9
-
-#define SDP8XX_CMD_TRIG_MEAS_MF 		0x3624
-#define SDP8XX_CMD_TRIG_MEAS_MF_CS		0x3726
-#define SDP8XX_CMD_TRIG_MEAS 			0x362F
-#define SDP8XX_CMD_TRIG_MEAS_CS			0x372D
-
 #define SDP8XX_CMD_READ_ID0				0x367C
 #define SDP8XX_CMD_READ_ID1				0xE102
 
@@ -50,20 +37,22 @@ static bool SDP8XX_ReadWords(uint16_t * words, uint32_t count);
 
 static struct {
 	uint8_t address;
+	int16_t scale;
 } gSDP8XX;
 
 /*
  * PUBLIC FUNCTIONS
  */
 
-bool SDP8XX_Init(void)
+bool SDP8XX_Init(SDP8XX_Mode_t mode)
 {
 	SDP8XX_Wake();
 	gSDP8XX.address = SDP8XX_Detect();
+	gSDP8XX.scale = 0;
 
 	if (gSDP8XX.address)
 	{
-		return SDP8XX_Command(SDP8XX_CMD_CONT_MEAS);
+		return SDP8XX_Command(mode);
 	}
 	return false;
 }
@@ -76,20 +65,20 @@ void SDP8XX_Deinit(void)
 
 bool SDP8XX_Read(int32_t * pressure)
 {
+	bool need_scale = gSDP8XX.scale == 0;
 	uint16_t words[3];
-	if (SDP8XX_ReadWords(words, LENGTH(words)))
+	if (!SDP8XX_ReadWords(words, need_scale ? 3 : 1))
 	{
-		// Differential pressure
-		// Temperature
-		// Sale factor
-
-		int32_t dp = (int16_t)words[0];
-		int32_t scale = (int16_t)words[2];
-
-		*pressure = (dp * 1000) / scale;
-		return true;
+		return false;
 	}
-	return false;
+
+	int32_t dp = (int16_t)words[0];
+	if (need_scale)
+	{
+		gSDP8XX.scale = (int16_t)words[2];
+	}
+	*pressure = (dp * 1000) / (int32_t)gSDP8XX.scale;
+	return true;
 }
 
 /*

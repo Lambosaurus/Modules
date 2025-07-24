@@ -9,7 +9,7 @@ The following example initialises the part, and reads out the pressure.
 
 ```C
 I2C_Init(SDP8XX_I2C, I2C_Mode_Fast);
-if (SDP8XX_Init())
+if (SDP8XX_Init(SDP8XX_Mode_Cont))
 {
     int32_t pa // In millipa
     if (SDP8XX_Read(&pa))
