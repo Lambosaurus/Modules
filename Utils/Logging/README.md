@@ -22,6 +22,15 @@ The formatted output must not exceed `LOG_TX_BFR`
 
 There are multiple options that can be optionally enabled.
 
+### **Print Color**
+Defining `LOG_PRINT_COLOR` adds ANSI color codes to color warning and error lines.
+
+```txt
+Information 0
+Warning 1          <-- Imagine this is yellow
+Error 2            <-- Imagine this is red
+```
+
 ### **Print Timestamp**
 Defining `LOG_PRINT_TIMESTAMP` prepends a timestamp to each line.
 
@@ -107,6 +116,7 @@ The following template can be used.
 ```C
 // Logging
 #define LOG_MIN_LEVEL           LOG_LEVEL_INFO
+//#define LOG_PRINT_COLOR
 //#define LOG_PRINT_TIMESTAMP
 //#define LOG_PRINT_LEVEL
 //#define LOG_PRINT_FILE

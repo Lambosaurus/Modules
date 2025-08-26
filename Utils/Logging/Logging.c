@@ -24,7 +24,10 @@
 
 
 #ifdef LOG_PRINT_LEVEL
-const char * Console_GetLevelString(uint8_t level);
+static const char * Log_GetLevelString(uint8_t level);
+#endif
+#ifdef LOG_PRINT_COLOR
+static const char * Log_GetColorString(uint8_t level);
 #endif
 
 /*
@@ -36,7 +39,7 @@ const char * Console_GetLevelString(uint8_t level);
  */
 
 void Log_Print(
-#ifdef LOG_PRINT_LEVEL
+#if defined(LOG_PRINT_LEVEL) || defined(LOG_PRINT_COLOR)
 		uint8_t level,
 #endif
 #ifdef LOG_PRINT_FILE
@@ -53,12 +56,14 @@ void Log_Print(
 	char bfr[LOG_TX_BFR];
 	uint32_t written;
 
-#if defined(LOG_PRINT_TIMESTAMP) || defined(LOG_PRINT_LEVEL) || defined(LOG_PRINT_SOURCE) || defined(LOG_PRINT_FILE)
+#if defined(LOG_PRINT_COLOR) || defined(LOG_PRINT_TIMESTAMP) || defined(LOG_PRINT_LEVEL) || defined(LOG_PRINT_SOURCE) || defined(LOG_PRINT_FILE)
 #ifdef LOG_PRINT_TIMESTAMP
 	uint32_t t = CORE_GetTick();
 #endif
 	written = snprintf(bfr, sizeof(bfr),
-
+#if defined(LOG_PRINT_COLOR)
+			"%s"
+#endif
 #if defined(LOG_PRINT_TIMESTAMP)
 			"[%03d.%03d] "
 #endif
@@ -80,12 +85,14 @@ void Log_Print(
 #if defined(LOG_PRINT_LEVEL) || defined(LOG_PRINT_FILE) || defined(LOG_PRINT_SOURCE)
 			": "
 #endif
-
+#if defined(LOG_PRINT_COLOR)
+			,Log_GetColorString(level)
+#endif
 #if defined(LOG_PRINT_TIMESTAMP)
 			,(int)(t / 1000), (int)(t % 1000)
 #endif
 #if defined(LOG_PRINT_LEVEL)
-			,Console_GetLevelString(level)
+			,Log_GetLevelString(level)
 #endif
 #if defined(LOG_PRINT_FILE)
 			,file
@@ -95,14 +102,30 @@ void Log_Print(
 #endif
 			);
 	Console_Write(bfr, written);
-#endif //defined(LOG_PRINT_TIMESTAMP) || defined(LOG_PRINT_LEVEL) || defined(LOG_PRINT_SOURCE) || defined(LOG_PRINT_FILE)
+#endif //defined(LOG_PRINT_COLOR) || defined(LOG_PRINT_TIMESTAMP) || defined(LOG_PRINT_LEVEL) || defined(LOG_PRINT_SOURCE) || defined(LOG_PRINT_FILE)
+
+	const int bfr_free = sizeof(bfr) - 2
+#ifdef LOG_PRINT_COLOR
+                                     - 4
+#endif
+	;
 
 	va_list va;
 	va_start(va, fmt);
-	written = vsnprintf(bfr, sizeof(bfr)-2, fmt, va);
+	written = vsnprintf(bfr, bfr_free, fmt, va);
 	va_end(va);
-	bfr[written++] = '\r';
-	bfr[written++] = '\n';
+#ifdef LOG_PRINT_COLOR
+	if (level != LOG_LEVEL_INFO)
+	{
+		memcpy(bfr + written, "\r\n\033[0m", 6);
+		written += 6;
+	}
+	else
+#endif
+	{
+		bfr[written++] = '\r';
+		bfr[written++] = '\n';
+	}
 	Console_Write(bfr, written);
 }
 
@@ -111,7 +134,7 @@ void Log_Print(
  */
 
 #ifdef LOG_PRINT_LEVEL
-const char * Console_GetLevelString(uint8_t level)
+static const char * Log_GetLevelString(uint8_t level)
 {
 	switch (level)
 	{
@@ -126,6 +149,21 @@ const char * Console_GetLevelString(uint8_t level)
 }
 #endif //LOG_PRINT_LEVEL
 
+#ifdef LOG_PRINT_COLOR
+static const char * Log_GetColorString(uint8_t level)
+{
+	switch (level)
+	{
+	default:
+	case LOG_LEVEL_INFO:
+		return "";
+	case LOG_LEVEL_WARN:
+		return "\033[33m";
+	case LOG_LEVEL_ERROR:
+		return "\033[31m";
+	}
+}
+#endif //LOG_PRINT_COLOR
 
 /*
  * INTERRUPT ROUTINES

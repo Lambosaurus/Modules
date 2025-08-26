@@ -20,7 +20,7 @@
 
 
 // Macro sludge to convert from the Log_x type to Log_Print.
-#ifdef LOG_PRINT_LEVEL
+#if defined(LOG_PRINT_LEVEL) || defined(LOG_PRINT_COLOR)
 #define LOG_PRINT_LEVEL_FMT(_level)				_level,
 #else
 #define LOG_PRINT_LEVEL_FMT(_level)
@@ -51,7 +51,7 @@
 // Common Log_Print function.
 // Dont use this directly.
 void Log_Print(
-#ifdef LOG_PRINT_LEVEL
+#if defined(LOG_PRINT_LEVEL) || defined(LOG_PRINT_COLOR)
 		uint8_t level,
 #endif
 #ifdef LOG_PRINT_FILE
