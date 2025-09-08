@@ -1,5 +1,6 @@
 
 #include "COBS.h"
+#include <string.h>
 
 /*
  * PRIVATE DEFINITIONS
