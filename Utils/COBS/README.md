@@ -18,7 +18,7 @@ const uint8_t data = { 0x00, 0x01, 0x02, 0x03 }
 // Encode data 
 uint8_t encoded[COBS_ENCODE_MAX(sizeof_data)];
 uint32_t encode_len = COBS_Encode(data, sizeof(data), encoded);
-// encoded: { 0x01, 0x04, 0x01, 0x02, 0x03, 0x00 }
+// encoded: { 0x01, 0x04, 0x01, 0x02, 0x03 }
 
 uint8_t decoded[16];
 if (COBS_DECODE_MAX(encode_len) <= sizeof(decoded))
