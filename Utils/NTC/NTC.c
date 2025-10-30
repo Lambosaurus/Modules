@@ -64,6 +64,47 @@ static const uint32_t cNtcResistance[] = {
 	195652,
 };
 
+#elif defined(NTC_CURVE_10K_3977K)
+
+#define NTC_BIAS_R      10000
+
+static const uint32_t cNtcResistance[] = {
+    351,
+    398,
+    454,
+    519,
+    595,
+    685,
+    792,
+    919,
+    1070,
+    1253,
+    1472,
+    1739,
+    2064,
+    2463,
+    2954,
+    3563,
+    4323,
+    5279,
+    6486,
+    8025,
+    10000,
+    12555,
+    15887,
+    20272,
+    26094,
+    33900,
+    44474,
+    58952,
+    78999,
+    107095,
+    146974,
+    204347,
+    288075,
+    412135,
+};
+
 #else
 #error "NTC Curve not specified"
 #endif
