@@ -7,21 +7,23 @@
  * PRIVATE DEFINITIONS
  */
 
+#ifndef	M24XX_ADDR
 #define M24XX_ADDR					0x50
+#endif
 #define M24XX_TIMEOUT				20
 
 #if (M24XX_SERIES == 0)				// 16 B
 #define M24XX_ADDR_BITS				4
-#define M24_PAGE_SIZE				16
+#define M24XX_PAGE_SIZE				16
 #elif (M24XX_SERIES == 1)			// 128 B
 #define M24XX_ADDR_BITS				7
-#define M24_PAGE_SIZE				8
+#define M24XX_PAGE_SIZE				8
 #elif (M24XX_SERIES == 2)			// 256 B
 #define M24XX_ADDR_BITS				8
-#define M24_PAGE_SIZE				8
+#define M24X_PAGE_SIZE				8
 #elif (M24XX_SERIES == 4)			// 512 B
 #define M24XX_ADDR_BITS				9
-#define M24_PAGE_SIZE				16
+#define M24XX_PAGE_SIZE				16
 #elif (M24XX_SERIES == 8)			// 1 kB
 #define M24XX_ADDR_BITS				10
 #define M24XX_PAGE_SIZE				16
@@ -62,10 +64,10 @@
 #elif (M24XX_ADDR_BITS > M24XX_ADDR_SIZE * 8)
 // For these devices, there is more addressable memory than the address byte allows.
 // Some or all of the A[2:0] bits are used as block addresses
-#define M24XX_DEV_ADDR(_addr)		(M24XX_ADDR | ((_addr >> (M24XX_ADDR_SIZE * 8)) & 0x7))
+#define M24XX_DEV_ADDR(_addr)		(M24XX_ADDR | (((_addr) >> (M24XX_ADDR_SIZE * 8)) & 0x7))
 #else
 // The address bits A[2:0] are used to select chained devices
-#define M24XX_DEV_ADDR(_addr)		(M24XX_ADDR | ((_addr >> M24XX_ADDR_BITS) & 0x7))
+#define M24XX_DEV_ADDR(_addr)		(M24XX_ADDR | (((_addr) >> M24XX_ADDR_BITS) & 0x7))
 #endif
 
 
@@ -98,11 +100,11 @@ bool M24xx_Write(uint32_t pos, const uint8_t * bfr, uint32_t size)
 	while (pos < end)
 	{
 		// Select the next chunk, and guarantee page alignment.
-		uint32_t page_end = (pos + M24_PAGE_SIZE) & ~(M24_PAGE_SIZE-1);
+		uint32_t page_end = (pos + M24XX_PAGE_SIZE) & ~(M24XX_PAGE_SIZE-1);
 		uint32_t length = (page_end < end ? page_end : end) - pos;
 
 		// Start address followed by data
-		uint8_t tx[M24_PAGE_SIZE + M24XX_ADDR_SIZE];
+		uint8_t tx[M24XX_PAGE_SIZE + M24XX_ADDR_SIZE];
 #if (M24XX_ADDR_SIZE == 2)
 		tx[0] = (uint8_t)(pos >> 8);
 		tx[1] = (uint8_t)pos;
