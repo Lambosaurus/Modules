@@ -4,7 +4,7 @@ Bitbangs SPI on some GPIO. Helpful in a pinch.
 ## Usage
 
 This is intended to be a replacement for the SPI module when required.
-Note that the timing is based around the CORE_DelayUs(), so higher bitrates are not going to be achievable.
+Note that the timing is based around the US_Delay(), so higher bitrates are not going to be achievable.
 
 ```C
 BSPI_Init(1000000);
