@@ -3,6 +3,7 @@
 #include "SPI.h"
 #include "GPIO.h"
 #include "Core.h"
+#include "US.h"
 
 /*
  * PRIVATE DEFINITIONS
@@ -266,7 +267,10 @@ bool SX1276_Init(void)
 	GPIO_EnableOutput(SX1276_SWITCH_PIN, SX1276_SWITCH_RXPOL);
 #endif
 #ifdef SX1276_RST_PIN
-	GPIO_EnableOutput(SX1276_RST_PIN, true);
+	GPIO_EnableOutput(SX1276_RST_PIN, false);
+	US_Delay(100);
+	GPIO_Write(SX1276_RST_PIN, true);
+	CORE_Delay(5);
 #endif
 
 	if (SX1276_ReadReg(SX1276_REG_VERSION) == SX1276_VERSION)
