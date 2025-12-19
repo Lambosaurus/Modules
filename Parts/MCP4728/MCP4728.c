@@ -100,6 +100,9 @@ bool MCP4728_SetAddress(uint8_t new_addr, GPIO_Pin_t ldac_pin)
 	GPIO_Write(MCP4728_SDA_PIN | MCP4728_SCL_PIN, GPIO_PIN_SET);
 	GPIO_Init(MCP4728_SDA_PIN | MCP4728_SCL_PIN, GPIO_Mode_Output | GPIO_Speed_High | GPIO_Flag_OpenDrain);
 
+	bool ldac_p = GPIO_Read(ldac_pin);
+	GPIO_Set(ldac_pin);
+
 	US_Delay(10);
 
 	uint8_t src_addr = gMCP4728.addr;
@@ -162,6 +165,8 @@ bool MCP4728_SetAddress(uint8_t new_addr, GPIO_Pin_t ldac_pin)
 		MCP4728_WaitForProg();
 	}
 	return ack;
+
+	GPIO_Write(ldac_pin, ldac_p);
 }
 #endif // MCP4728_SUPPORT_ADDRESSING
 
