@@ -1,5 +1,5 @@
-#ifndef LIS2DT_H
-#define LIS2DT_H
+#ifndef LIS2HH_H
+#define LIS2HH_H
 
 #include "STM32X.h"
 
@@ -29,9 +29,6 @@ void LIS2_Deinit(void);
 void LIS2_Read(LIS2_Accel_t * acc);
 
 void LIS2_EnableDataInt(void);
-void LIS2_EnableThresholdInt(uint16_t threshold);
-void LIS2_EnableFilter(uint8_t div, bool high_pass);
-
 bool LIS2_IsIntSet(void);
 
-#endif //LIS2DT_H
+#endif //LIS2HH_H

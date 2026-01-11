@@ -1,8 +1,8 @@
-# LIS2
+# LIS2DT
 Support for the LIS2DT 3 axis accelerometer by ST Microelectronics
 This uses the SPI or I2C interface.
 
-## Usage
+# Usage
 
 This part is highly configurable - only simple configurations are supported by this driver.
 
@@ -11,16 +11,9 @@ Read the datasheet for more info on the available config. Note that not all data
 The following config demonstrates a 100Hz sampling regeim
 
 ```C
-const LIS2_Config_t config = {
-    .resolution = LIS2_Res_12B,
-    .scale_g = 2,
-    .frequency = 100,
-    .int_src = LIS2_IntSrc_DataReady,
-    .threshold = 0,
-}
-
 SPI_Init(LIS2_SPI, LIS2_SPI_BITRATE, SPI_Mode_0);
-LIS2_Init(&config);
+LIS2_Init(2, 100, true); // 2G mode, 100Hz, HP mode
+LIS2_EnableDataInt();
 
 while (1)
 {
@@ -35,19 +28,15 @@ while (1)
 }
 ```
 
-An alternative configuration could be used for impact detection
+Shocks can be detected using a threshold and high-pass filter.
 
 ```C
-const LIS2_Config_t config = {
-    .resolution = LIS2_Res_12B,
-    .scale_g = 4,
-    .frequency = 100,
-    .int_src = LIS2_IntSrc_Shock,
-    .threshold = 2000,
-}
+LIS2_Init(2, 100, true); // 2G mode, 100Hz, HP mode
+LIS2_EnableFilter(4, true); // 4 samples, high pass filter
+LIS2_EnableThresholdInt(500); // 500 mG threshold
 ```
 
-## Board
+# Board
 
 The module is dependant on definitions within `Board.h`
 
