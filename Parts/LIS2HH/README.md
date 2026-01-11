@@ -1,5 +1,5 @@
-# LIS2DT
-Support for the LIS2DT 3 axis accelerometer by ST Microelectronics
+# LIS2HH
+Support for the LIS2HH 3 axis accelerometer by ST Microelectronics
 This uses the SPI or I2C interface.
 
 # Usage
@@ -11,29 +11,21 @@ Read the datasheet for more info on the available config. Note that not all data
 The following config demonstrates a 100Hz sampling regeim
 
 ```C
-SPI_Init(LIS2DT_SPI, LIS2DT_SPI_BITRATE, SPI_Mode_0);
-LIS2DT_Init(2, 100, true); // 2G mode, 100Hz, HP mode
-LIS2DT_EnableDataInt();
+SPI_Init(LIS2HH_SPI, LIS2HH_SPI_BITRATE, SPI_Mode_0);
+LIS2HH_Init(2, 100, true); // 2G mode, 100Hz, HP mode
+LIS2HH_EnableDataInt();
 
 while (1)
 {
-    if (LIS2DT_IsIntSet())
+    if (LIS2HH_IsIntSet())
     {
-        LIS2DT_Accel_t accel;
-        LIS2DT_Read(&accel);
+        LIS2HH_Accel_t accel;
+        LIS2HH_Read(&accel);
         ...
     }
 
     CORE_Idle();
 }
-```
-
-Shocks can be detected using a threshold and high-pass filter.
-
-```C
-LIS2DT_Init(2, 100, true); // 2G mode, 100Hz, HP mode
-LIS2DT_EnableFilter(4, true); // 4 samples, high pass filter
-LIS2DT_EnableThresholdInt(500); // 500 mG threshold
 ```
 
 # Board
@@ -43,10 +35,10 @@ The module is dependant on definitions within `Board.h`
 The following template can be used for SPI mode
 
 ```C
-// LIS2DT interface
-#define LIS2DT_SPI            SPI_1
-#define LIS2DT_CS_PIN         PA0
-#define LIS2DT_INT_PIN        PA1
+// LIS2HH interface
+#define LIS2HH_SPI            SPI_1
+#define LIS2HH_CS_PIN         PA0
+#define LIS2HH_INT_PIN        PA1
 #define GPIO_IRQ1_ENABLE
 
 // Configure SPI1
@@ -58,9 +50,9 @@ The following template can be used for SPI mode
 The following template can be used for I2C mode
 
 ```C
-// LIS2DT interface
-#define LIS2DT_I2C            I2C_1
-#define LIS2DT_INT_GPIO       PA1
+// LIS2HH interface
+#define LIS2HH_I2C            I2C_1
+#define LIS2HH_INT_GPIO       PA1
 #define GPIO_IRQ1_ENABLE
 
 // Configure I2C1

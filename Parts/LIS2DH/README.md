@@ -72,7 +72,7 @@ The following template can be used for I2C mode
 
 ```C
 // LIS2DH interface
-#define LIS2_SPI            SPI_1
+#define LIS2_I2C            I2C_1
 #define LIS2_INT_PIN        PA1
 #define GPIO_IRQ1_ENABLE
 
