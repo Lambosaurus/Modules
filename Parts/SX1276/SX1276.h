@@ -82,6 +82,8 @@ void SX1276_StartReceive(void);
 uint32_t SX1276_Receive(uint8_t * data, uint8_t size, int16_t * rssi);
 void SX1276_Stop(void);
 
+void SX1276_Carrier(uint32_t timeout);
+
 /*
  * EXTERN DECLARATIONS
  */

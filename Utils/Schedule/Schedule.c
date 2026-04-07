@@ -216,17 +216,17 @@ static void Schedule_OnWakeup(void)
 		}
 
 		// Arrange execution
-		if (s->flags & Schedule_Flag_Defer)
+		if (s->flags & Schedule_Flag_ISR)
+		{
+			s->callback();
+		}
+		else
 		{
 			// Do not double defer
 			if (s->deferred == NULL)
 			{
 				Schedule_Defer(s);
 			}
-		}
-		else
-		{
-			s->callback();
 		}
 	}
 

@@ -435,6 +435,40 @@ void SX1276_Stop(void)
 	SX1276_EnterSleep();
 }
 
+void SX1276_Carrier(uint32_t timeout)
+{
+	// The carrier is emitted by putting the modem in GFSK mode
+	// hence, the registeres here are all a bit hacked.
+
+	SX1276_SetOpmode(SX1276_OPMODE_MODE_SLEEP); // Enter sleep
+	SX1276_SetOpmode(SX1276_OPMODE_MODE_SLEEP); // Exit lora mode
+	SX1276_SetOpmode(SX1276_OPMODE_MODE_STBY);
+
+#ifdef SX1276_SWITCH_PIN
+	GPIO_Write(SX1276_SWITCH_PIN, SX1276_SWITCH_TXPOL);
+#endif
+
+	uint8_t freq_cfg[4] = { 0 }; // Bitrate and fdev
+	SX1276_WriteRegs(0x02, freq_cfg, sizeof(freq_cfg));
+
+	uint8_t packet_cfg[3] = {
+		0x80, // RegPacketConfig1
+		0x00, // RegPacketConfig2
+		0x01, // RegPayloadLength
+	};
+	SX1276_WriteRegs(0x30, packet_cfg, sizeof(packet_cfg));
+	SX1276_WriteReg(SX1276_REG_DIO_MAP1, 0x00);
+
+	SX1276_SetOpmode(SX1276_OPMODE_MODE_TX);
+	CORE_Delay(timeout);
+	SX1276_EnterSleep();
+	SX1276_EnterSleep();
+
+#ifdef SX1276_SWITCH_PIN
+	GPIO_Write(SX1276_SWITCH_PIN, !SX1276_SWITCH_TXPOL);
+#endif
+}
+
 /*
  * PRIVATE FUNCTIONS
  */
@@ -585,27 +619,27 @@ static inline int16_t SX1276_ReadPacketRssi(void)
 
 static void SX1276_EnterTransmit(void)
 {
-	SX1276_SetOpmode(SX1276_OPMODE_MODE_TX);
+	SX1276_SetOpmode(SX1276_OPMODE_MODE_TX | SX1276_OPMODE_MOD_LORA);
 	gSX1276.state = SX1276_State_Transmit;
 	gSX1276.started = SX1276_GetTimestamp();
 }
 
 static void SX1276_EnterReceive(void)
 {
-	SX1276_SetOpmode(SX1276_OPMODE_MODE_RX);
+	SX1276_SetOpmode(SX1276_OPMODE_MODE_RX | SX1276_OPMODE_MOD_LORA);
 	gSX1276.state = SX1276_State_Receive;
 	gSX1276.started = SX1276_GetTimestamp();
 }
 
 static void SX1276_EnterSleep(void)
 {
-	SX1276_SetOpmode(SX1276_OPMODE_MODE_SLEEP);
+	SX1276_SetOpmode(SX1276_OPMODE_MODE_SLEEP | SX1276_OPMODE_MOD_LORA);
 	gSX1276.state = SX1276_State_Idle;
 }
 
 static void SX1276_EnterStandby(void)
 {
-	SX1276_SetOpmode(SX1276_OPMODE_MODE_STBY);
+	SX1276_SetOpmode(SX1276_OPMODE_MODE_STBY | SX1276_OPMODE_MOD_LORA);
 	gSX1276.state = SX1276_State_Idle;
 }
 
@@ -613,7 +647,6 @@ static void SX1276_SetOpmode(uint8_t mode)
 {
 	SX1276_WriteReg(SX1276_REG_OPMODE,
 			mode
-			| SX1276_OPMODE_MOD_LORA
 #ifdef SX1276_USE_LF_PORT
 			| SX1276_OPMODE_LOWFREQ
 #endif

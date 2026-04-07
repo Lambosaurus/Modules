@@ -14,7 +14,7 @@
 
 typedef enum {
 	Schedule_Flag_Repeat = (1 << 0),
-	Schedule_Flag_Defer = (1 << 1),
+	Schedule_Flag_ISR = (1 << 1),
 } Schedule_Flag_t;
 
 typedef struct Schedule_s Schedule_t;
