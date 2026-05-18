@@ -88,7 +88,7 @@ void NMEA_Parse(uint8_t * bfr, uint32_t size)
 			uint8_t len = gNMEA.count;
 			gNMEA.count = NMEA_MSG_NOSTART;
 
-			if (gNMEA.count > 8)
+			if (len > 8)
 			{
 				// Strip CR and null terminate.
 				if (gNMEA.bfr[len-1] == '\r')
