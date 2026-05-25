@@ -408,23 +408,23 @@ uint32_t SX1276_Receive(uint8_t * data, uint8_t size, int16_t * rssi)
 {
 	if (gSX1276.state == SX1276_State_Receive && gSX1276.irq_ready)
 	{
+		uint8_t irqs = SX1276_ReadIrqs();
+		SX1276_ClearIrqs();
+
+		if (!(irqs & SX1276_IRQ_RX_DONE) || (irqs & SX1276_IRQ_CRC_ERROR))
+			return 0; // Invalid. Discard it
+
 		uint8_t rx_size = SX1276_ReadReg(SX1276_REG_RX_PKT_SIZE);
 
 		if (rx_size > size)
-		{
-			// Drop the packet. What else can we do?
-			SX1276_ClearIrqs();
-		}
-		else
-		{
-			uint8_t addr = SX1276_ReadReg(SX1276_REG_FIFO_RX_HEAD);
-			*rssi = SX1276_ReadPacketRssi();
+			return 0; // Drop the packet. What else can we do?
 
-			SX1276_WriteReg(SX1276_REG_FIFO_ADDR, addr);
-			SX1276_ReadRegs(SX1276_REG_FIFO, data, rx_size);
-			SX1276_ClearIrqs();
-			return rx_size;
-		}
+		uint8_t addr = SX1276_ReadReg(SX1276_REG_FIFO_RX_HEAD);
+		*rssi = SX1276_ReadPacketRssi();
+
+		SX1276_WriteReg(SX1276_REG_FIFO_ADDR, addr);
+		SX1276_ReadRegs(SX1276_REG_FIFO, data, rx_size);
+		return rx_size;
 	}
 
 	return 0;
@@ -493,10 +493,9 @@ static void SX1276_InitialConfig(void)
 	SX1276_WriteRegs(SX1276_REG_FIFO_TX_BASE, regs, 2);
 
 	// Note, the mask is inverted. 0 = enable.
-	SX1276_WriteReg(SX1276_REG_IRQ_MASK, ~(SX1276_IRQ_TX_DONE | SX1276_IRQ_RX_DONE));
+	SX1276_WriteReg(SX1276_REG_IRQ_MASK, ~(SX1276_IRQ_TX_DONE | SX1276_IRQ_RX_DONE | SX1276_IRQ_CRC_ERROR));
 }
 
-__attribute((unused))
 static uint8_t SX1276_ReadIrqs(void)
 {
 	return SX1276_ReadReg(SX1276_REG_IRQ_FLAGS);
