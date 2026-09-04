@@ -3,7 +3,7 @@
 
 #include "GPIO.h"
 #include "TIM.h"
-#include "Board.h"
+#include "Core.h"
 #include "util/FIFO.h"
 
 #include <string.h>
@@ -25,6 +25,9 @@
 #ifndef BUART_RX_BFR_SIZE
 #define BUART_RX_BFR_SIZE		64
 #endif
+#ifndef BUART_TX_BFR_SIZE
+#define BUART_TX_BFR_SIZE		16
+#endif
 
 /*
  * PRIVATE TYPES
@@ -34,13 +37,12 @@
  * PRIVATE PROTOTYPES
  */
 
-static void BUART_WriteByte(uint8_t data);
-
 static void BUART_TxIrq(void);
 static void BUART_RxIrq(void);
 static void BUART_RxStartIrq(void);
 
-static void BUART_PrepareRx(void);
+static void BUART_StartRx(void);
+static void BUART_StartTx(void);
 
 /*
  * PRIVATE VARIABLES
@@ -51,8 +53,9 @@ static struct {
 	uint32_t rx_data;
 	volatile uint8_t tx_bits;
 	volatile uint8_t rx_bits;
-
+	volatile bool tx_busy;
 	FIFO_DECLARE(rx_fifo, BUART_RX_BFR_SIZE);
+	FIFO_DECLARE(tx_fifo, BUART_TX_BFR_SIZE);
 } gBUART;
 
 /*
@@ -61,9 +64,11 @@ static struct {
 
 void BUART_Init(uint32_t baud)
 {
+	gBUART.tx_busy = false;
 	gBUART.tx_bits = 0;
 
 	FIFO_Init(&gBUART.rx_fifo);
+	FIFO_Init(&gBUART.tx_fifo);
 
 	GPIO_EnableOutput(BUART_TX_PIN, GPIO_PIN_SET);
 	GPIO_EnableInput(BUART_RX_PIN, GPIO_Pull_Down);
@@ -71,7 +76,7 @@ void BUART_Init(uint32_t baud)
 	TIM_Init(BUART_TIM, baud * BUART_OSR, BUART_OSR - 1);
 	TIM_Start(BUART_TIM);
 
-	BUART_PrepareRx();
+	BUART_StartRx();
 }
 
 void BUART_Deinit(void)
@@ -84,15 +89,38 @@ void BUART_Deinit(void)
 
 void BUART_Write(const uint8_t * data, uint32_t count)
 {
-	while (count--)
+	while (count)
 	{
-		BUART_WriteByte(*data++);
+		uint32_t written = FIFO_Write(&gBUART.tx_fifo, data, count);
+		data += written;
+		count -= written;
+
+		if (!gBUART.tx_busy)
+			BUART_StartTx();
+
+		// Stall for a bit if the TX is busy
+		if (count)
+			CORE_Idle();
 	}
 }
 
 void BUART_WriteStr(const char * str)
 {
 	BUART_Write((const uint8_t *)str, strlen(str));
+}
+
+void BUART_WriteFlush(void)
+{
+	while (gBUART.tx_busy)
+		CORE_Idle();
+}
+
+uint32_t BUART_WriteCount(void)
+{
+	uint32_t count = FIFO_Count(&gBUART.tx_fifo);
+	if (gBUART.tx_busy > 0)
+		count++;
+	return count;
 }
 
 uint32_t BUART_ReadCount(void)
@@ -119,25 +147,17 @@ void BUART_ReadFlush(void)
  * PRIVATE FUNCTIONS
  */
 
-static void BUART_PrepareRx(void)
+static void BUART_StartTx(void)
 {
-	GPIO_OnChange(BUART_RX_PIN, GPIO_IT_Falling, BUART_RxStartIrq);
-}
-
-static void BUART_WriteByte(uint8_t data)
-{
-	// We write the stop bit twice, because the last bit marks the timer end point.
-	gBUART.tx_bits = BUART_BITS + 1;
-	gBUART.tx_data = 0x0
-			| (data << BUART_START_BITS)
-			| (BUART_MASK(BUART_STOP_BITS + 1) << (BUART_START_BITS + BUART_DATA_BITS));
-
-
+	gBUART.tx_busy = true;
 	uint32_t t = BUART_OSR_WRAP(TIM_Read(BUART_TIM) + 1);
 	TIM_SetPulse(BUART_TIM, TIM_CH1, t);
 	TIM_OnPulse(BUART_TIM, TIM_CH1, BUART_TxIrq);
+}
 
-	while (gBUART.tx_bits);
+static void BUART_StartRx(void)
+{
+	GPIO_OnChange(BUART_RX_PIN, GPIO_IT_Falling, BUART_RxStartIrq);
 }
 
 /*
@@ -147,15 +167,29 @@ static void BUART_WriteByte(uint8_t data)
 static void BUART_TxIrq(void)
 {
 	uint32_t tx_bits = gBUART.tx_bits;
-	if (tx_bits)
+	if (tx_bits == 0)
 	{
-		GPIO_Write(BUART_TX_PIN, gBUART.tx_data & 0x1);
-		gBUART.tx_data >>= 1;
-		gBUART.tx_bits = --tx_bits;
+		uint8_t data;
+		if (FIFO_Pop(&gBUART.tx_fifo, &data))
+		{
+			// Load the new byte
+			tx_bits = BUART_BITS;
+			gBUART.tx_data = 0x0
+				| (data << BUART_START_BITS)
+				| (BUART_MASK(BUART_STOP_BITS) << (BUART_START_BITS + BUART_DATA_BITS));
+		}
+		else
+		{
+			// No more bytes. Stop.
+			TIM_StopPulse(BUART_TIM, TIM_CH1);
+			gBUART.tx_busy = false;
+			return;
+		}
 	}
 
-	if (tx_bits == 0)
-		TIM_StopPulse(BUART_TIM, TIM_CH1);
+	GPIO_Write(BUART_TX_PIN, gBUART.tx_data & 0x1);
+	gBUART.tx_data >>= 1;
+	gBUART.tx_bits = --tx_bits;
 }
 
 static void BUART_RxStartIrq(void)
@@ -202,7 +236,7 @@ static void BUART_RxIrq(void)
 			FIFO_Put(&gBUART.rx_fifo, data);
 		}
 
-		BUART_PrepareRx();
+		BUART_StartRx();
 	}
 }
 

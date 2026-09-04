@@ -16,6 +16,8 @@ void BUART_Deinit(void);
 
 void BUART_Write(const uint8_t * data, uint32_t count);
 void BUART_WriteStr(const char * str);
+void BUART_WriteFlush(void);
+uint32_t BUART_WriteCount(void);
 
 uint32_t BUART_ReadCount(void);
 uint32_t BUART_Read(uint8_t * data, uint32_t count);
