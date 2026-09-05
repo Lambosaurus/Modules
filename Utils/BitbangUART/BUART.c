@@ -12,15 +12,19 @@
  * PRIVATE DEFINITIONS
  */
 
+#define BUART_CHECK_START_BIT
+
 #define BUART_OSR				16
 #define BUART_OSR_WRAP(x)		((x) & (BUART_OSR - 1))
 
 #define BUART_START_BITS		1
-#define BUART_STOP_BITS			1
+#define BUART_TX_STOP_BITS		1
+#define BUART_RX_STOP_BITS		0
 #define BUART_DATA_BITS			8
-#define BUART_BITS				(BUART_START_BITS + BUART_DATA_BITS + BUART_STOP_BITS)
+#define BUART_TX_BITS			(BUART_START_BITS + BUART_DATA_BITS + BUART_TX_STOP_BITS)
+#define BUART_RX_BITS			(BUART_START_BITS + BUART_DATA_BITS + BUART_RX_STOP_BITS)
 
-#define BUART_MASK(x)			((1 << (x)) - 1)
+#define BUART_MASK(bits, offset)			(((1 << (bits)) - 1) << (offset))
 
 #ifndef BUART_RX_BFR_SIZE
 #define BUART_RX_BFR_SIZE		64
@@ -28,6 +32,8 @@
 #ifndef BUART_TX_BFR_SIZE
 #define BUART_TX_BFR_SIZE		16
 #endif
+
+#define BUART_OPTIMIZE			__attribute((optimize("Ofast")))
 
 /*
  * PRIVATE TYPES
@@ -41,7 +47,7 @@ static void BUART_TxIrq(void);
 static void BUART_RxIrq(void);
 static void BUART_RxStartIrq(void);
 
-static void BUART_StartRx(void);
+static inline void BUART_StartRx(void);
 static void BUART_StartTx(void);
 
 /*
@@ -51,8 +57,8 @@ static void BUART_StartTx(void);
 static struct {
 	uint32_t tx_data;
 	uint32_t rx_data;
-	volatile uint8_t tx_bits;
-	volatile uint8_t rx_bits;
+	volatile uint32_t tx_bits;
+	volatile uint32_t rx_bits;
 	volatile bool tx_busy;
 	FIFO_DECLARE(rx_fifo, BUART_RX_BFR_SIZE);
 	FIFO_DECLARE(tx_fifo, BUART_TX_BFR_SIZE);
@@ -81,7 +87,7 @@ void BUART_Init(uint32_t baud)
 
 void BUART_Deinit(void)
 {
-	GPIO_OnChange(BUART_RX_PIN, GPIO_IT_None, NULL);
+	GPIO_StopChange(BUART_RX_PIN);
 	TIM_Deinit(BUART_TIM);
 	GPIO_Deinit(BUART_TX_PIN);
 	GPIO_Deinit(BUART_RX_PIN);
@@ -155,7 +161,7 @@ static void BUART_StartTx(void)
 	TIM_OnPulse(BUART_TIM, TIM_CH1, BUART_TxIrq);
 }
 
-static void BUART_StartRx(void)
+static inline void BUART_StartRx(void)
 {
 	GPIO_OnChange(BUART_RX_PIN, GPIO_IT_Falling, BUART_RxStartIrq);
 }
@@ -164,6 +170,7 @@ static void BUART_StartRx(void)
  * INTERRUPT ROUTINES
  */
 
+BUART_OPTIMIZE
 static void BUART_TxIrq(void)
 {
 	uint32_t tx_bits = gBUART.tx_bits;
@@ -173,10 +180,10 @@ static void BUART_TxIrq(void)
 		if (FIFO_Pop(&gBUART.tx_fifo, &data))
 		{
 			// Load the new byte
-			tx_bits = BUART_BITS;
+			tx_bits = BUART_TX_BITS;
 			gBUART.tx_data = 0x0
 				| (data << BUART_START_BITS)
-				| (BUART_MASK(BUART_STOP_BITS) << (BUART_START_BITS + BUART_DATA_BITS));
+				| BUART_MASK(BUART_TX_STOP_BITS, BUART_START_BITS + BUART_DATA_BITS);
 		}
 		else
 		{
@@ -192,33 +199,36 @@ static void BUART_TxIrq(void)
 	gBUART.tx_bits = --tx_bits;
 }
 
+BUART_OPTIMIZE
 static void BUART_RxStartIrq(void)
 {
-	GPIO_OnChange(BUART_RX_PIN, GPIO_IT_None, NULL);
+	uint32_t tstart = TIM_Read(BUART_TIM);
+	GPIO_StopChange(BUART_RX_PIN);
 
-	gBUART.rx_bits = BUART_BITS;
+	gBUART.rx_bits = BUART_RX_BITS;
 	gBUART.rx_data = 0;
 
-	uint32_t t = BUART_OSR_WRAP(TIM_Read(BUART_TIM) + (BUART_OSR / 2) - 1);
-	TIM_SetPulse(BUART_TIM, TIM_CH2, t);
+	uint32_t tsample = BUART_OSR_WRAP(tstart + ((BUART_OSR / 2) - 1));
+	TIM_SetPulse(BUART_TIM, TIM_CH2, tsample);
 	TIM_OnPulse(BUART_TIM, TIM_CH2, BUART_RxIrq);
 }
 
+BUART_OPTIMIZE
 static void BUART_RxIrq(void)
 {
 	uint32_t rx_bits = gBUART.rx_bits;
 	if (rx_bits)
 	{
-		gBUART.rx_data |= (uint32_t)GPIO_Read(BUART_RX_PIN) << (BUART_BITS - rx_bits);
+		gBUART.rx_data |= (uint32_t)GPIO_Read(BUART_RX_PIN) << (BUART_RX_BITS - rx_bits);
 
-		if (rx_bits == BUART_BITS && gBUART.rx_data != 0)
+#ifdef BUART_CHECK_START_BIT
+		if (rx_bits == BUART_RX_BITS && gBUART.rx_data != 0)
 		{
-			// We did not see the start bit.
-			// Abort reception.
-			// Because we didn't record the stop bit, the byte will be dropped.
+			// We did not see the start bit. Abort.
 			gBUART.rx_bits = 0;
 		}
 		else
+#endif //BUART_CHECK_START_BITS
 		{
 			gBUART.rx_bits = --rx_bits;
 		}
@@ -226,17 +236,19 @@ static void BUART_RxIrq(void)
 	if (rx_bits == 0)
 	{
 		TIM_StopPulse(BUART_TIM, TIM_CH2);
+		BUART_StartRx(); // Do this early, as we want the IRQ pending if we are falling behind.
 
-		uint32_t stop_bit_mask = BUART_MASK(BUART_STOP_BITS) << (BUART_START_BITS + BUART_DATA_BITS);
-
+#if (BUART_RX_STOP_BITS > 0)
 		// Confirm we saw the stop bits.
-		if ((gBUART.rx_data & stop_bit_mask) == stop_bit_mask)
+		// Note, if we aborted due to start bits, this will also fail.
+		if ((gBUART.rx_data & BUART_MASK(BUART_RX_STOP_BITS, BUART_START_BITS + BUART_DATA_BITS)) == BUART_MASK(BUART_RX_STOP_BITS, BUART_START_BITS + BUART_DATA_BITS))
+#elif defined(BUART_CHECK_START_BIT)
+		if ((gBUART.rx_data & 0x1) == 0)
+#endif
 		{
-			uint8_t data = (gBUART.rx_data >> BUART_START_BITS) & BUART_MASK(BUART_DATA_BITS);
+			uint8_t data = (gBUART.rx_data >> BUART_START_BITS) & BUART_MASK(BUART_DATA_BITS, 0);
 			FIFO_Put(&gBUART.rx_fifo, data);
 		}
-
-		BUART_StartRx();
 	}
 }
 
