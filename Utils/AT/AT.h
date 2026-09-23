@@ -7,6 +7,8 @@
  * PUBLIC DEFINITIONS
  */
 
+typedef bool(*AT_URCCallback_t)(const char * line);
+
 /*
  * PUBLIC TYPES
  */
@@ -27,17 +29,21 @@ typedef enum {
 void AT_Init(void);
 void AT_Deinit(void);
 
+void AT_SetUrcHandler(AT_URCCallback_t callback);
+
 void AT_StartCommand(void);
 void AT_SetTimeout(uint32_t timeout);
-bool AT_GetTimeout(void);
+uint32_t AT_GetTimeout(void);
+bool AT_TimeoutElapsed(void);
 
 void AT_Command(const char * cmd);
-void AT_Commandf(const char * fmt, ...)
+void AT_Commandf(const char * cmd, ...)
 	_ATTRIBUTE ((__format__ (__printf__, 1, 2)));
 void AT_CommandRaw(const uint8_t * content, uint32_t size);
 
 AT_Status_t AT_ExpectOk(void);
-AT_Status_t AT_ExpectResponse(char ** response);
+AT_Status_t AT_ExpectResponse(const char * expected);
+AT_Status_t AT_ExpectResponsel(char ** response);
 AT_Status_t AT_ExpectResponsef(uint32_t min_args, const char * fmt, ...)
 	_ATTRIBUTE ((__format__ (__scanf__, 2, 3)));
 AT_Status_t AT_ExpectMatch(const char * expected);

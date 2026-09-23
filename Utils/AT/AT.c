@@ -49,6 +49,7 @@ struct {
 	uint8_t line_count;
 	uint32_t line_start;
 	uint32_t line_head;
+	AT_URCCallback_t urc_callback;
 	char line_bfr[AT_RX_BFR];
 } gAT;
 
@@ -67,6 +68,11 @@ void AT_Deinit(void)
 	UART_Deinit(AT_UART);
 }
 
+void AT_SetUrcHandler(AT_URCCallback_t callback)
+{
+	gAT.urc_callback = callback;
+}
+
 // Resets the state of the Expect parsers and Command senders.
 void AT_StartCommand(void)
 {
@@ -81,7 +87,15 @@ void AT_SetTimeout(uint32_t timeout)
 	gAT.timeout = timeout;
 }
 
-bool AT_GetTimeout(void)
+uint32_t AT_GetTimeout(void)
+{
+	uint32_t elapsed = CORE_GetTick() - gAT.command_start;
+	if (elapsed >= gAT.timeout)
+		return 0;
+	return gAT.timeout - elapsed;
+}
+
+bool AT_TimeoutElapsed(void)
 {
 	uint32_t elapsed = CORE_GetTick() - gAT.command_start;
 	return elapsed >= gAT.timeout;
@@ -100,14 +114,14 @@ void AT_Command(const char * cmd)
 }
 
 // Sends a single formatted command
-void AT_Commandf(const char * fmt, ...)
+void AT_Commandf(const char * cmd, ...)
 {
 	if (gAT.command_sent) { return; }
 
 	va_list va;
-	va_start(va, fmt);
+	va_start(va, cmd);
 	char bfr[AT_TX_BFR];
-	vsnprintf(bfr, sizeof(bfr), fmt, va);
+	vsnprintf(bfr, sizeof(bfr), cmd, va);
 	va_end(va);
 	AT_Command(bfr);
 }
@@ -131,7 +145,7 @@ AT_Status_t AT_ExpectOk(void)
 // Expects a one-line reply followed by "OK".
 // - AT_Ok: "OK" has been found. Reply stored in *response.
 // All other response codes are valid.
-AT_Status_t AT_ExpectResponse(char ** response)
+AT_Status_t AT_ExpectResponsel(char ** response)
 {
 	AT_Status_t r;
 	if (gAT.line_count == 0)
@@ -145,14 +159,30 @@ AT_Status_t AT_ExpectResponse(char ** response)
 }
 
 // Expects a one-line reply followed by "OK".
-// The one-line reply will be parsed according to the formar string and argcount
+// The one-line reply must match the expected string
+// - AT_Ok: "OK" has been found. Parsed args stored in varargs
+// - AT_Unexpected: Minimum number of args not parsed.
+// All other response codes are valid.
+AT_Status_t AT_ExpectResponse(const char * expected)
+{
+	char * line;
+	AT_Status_t r = AT_ExpectResponsel(&line);
+	if (r == AT_Ok)
+	{
+		return (strcmp(line, expected) == 0) ? AT_Ok : AT_Unexpected;
+	}
+	return r;
+}
+
+// Expects a one-line reply followed by "OK".
+// The one-line reply will be parsed according to the format string and argcount
 // - AT_Ok: "OK" has been found. Parsed args stored in varargs
 // - AT_Unexpected: Minimum number of args not parsed.
 // All other response codes are valid.
 AT_Status_t AT_ExpectResponsef(uint32_t min_args, const char * fmt, ...)
 {
 	char * line;
-	AT_Status_t r = AT_ExpectResponse(&line);
+	AT_Status_t r = AT_ExpectResponsel(&line);
 	if (r == AT_Ok)
 	{
 		va_list va;
@@ -165,8 +195,8 @@ AT_Status_t AT_ExpectResponsef(uint32_t min_args, const char * fmt, ...)
 	return r;
 }
 
-// Expects a matching line. This will continously parse until the expected match is found.
-// - AT_Ok: match has been found, and the line returned in *response
+// Expects a matching line. This will continuously parse until the expected match is found.
+// - AT_Ok: match has been found and matches the expected string.
 // - AT_Unexpected: expected string not found
 // All other response codes are valid.
 AT_Status_t AT_ExpectMatch(const char * expected)
@@ -214,7 +244,7 @@ AT_Status_t AT_ExpectRaw(uint8_t * bfr, uint32_t size)
 		gAT.line_head = 0;
 		return AT_Ok;
 	}
-	else if (AT_GetTimeout())
+	else if (AT_TimeoutElapsed())
 	{
 		gAT.line_head = 0;
 		return AT_Timeout;
@@ -301,7 +331,7 @@ static AT_Status_t AT_ExpectNext(char ** line, bool last_line)
 	if (r == AT_Pending)
 	{
 		// Not timed out yet. Stay parsing.
-		if (!AT_GetTimeout()) { return r; }
+		if (!AT_TimeoutElapsed()) { return r; }
 
 		r = AT_Timeout;
 	}
@@ -310,6 +340,11 @@ static AT_Status_t AT_ExpectNext(char ** line, bool last_line)
 		if (strcmp(*line, "ERROR") == 0)
 		{
 			r = AT_Error;
+		}
+		else if (gAT.urc_callback && gAT.urc_callback(*line))
+		{
+			// Line was consumed by URC parser. Ignore it.
+			return AT_Pending;
 		}
 	}
 
