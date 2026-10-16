@@ -9,10 +9,11 @@
  */
 
 
-#define LOG_LEVEL_INFO			0
-#define LOG_LEVEL_WARN			1
-#define LOG_LEVEL_ERROR			2
-#define LOG_LEVEL_SILENT		3
+#define LOG_LEVEL_DEBUG			0
+#define LOG_LEVEL_INFO			1
+#define LOG_LEVEL_WARN			2
+#define LOG_LEVEL_ERROR			3
+#define LOG_LEVEL_SILENT		4
 
 #ifndef LOG_MIN_LEVEL
 #define LOG_MIN_LEVEL			LOG_LEVEL_INFO
@@ -62,6 +63,12 @@ void Log_Print(
 #endif
 		const char * fmt, ...);
 
+// Implementaion of Log_Info
+#if (LOG_MIN_LEVEL <= LOG_LEVEL_DEBUG)
+#define Log_Debug(...)			LOG_PRINT_FMT(LOG_LEVEL_DEBUG, __VA_ARGS__)
+#else
+#define Log_Debug(...)			((void)0)
+#endif
 
 // Implementaion of Log_Info
 #if (LOG_MIN_LEVEL <= LOG_LEVEL_INFO)

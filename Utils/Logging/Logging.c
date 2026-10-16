@@ -1,10 +1,17 @@
 #include "Logging.h"
-#include "Core.h"
 
 #include <stdio.h>
 #include <stdarg.h>
 
 #include "Console.h"
+
+#ifdef LOG_PRINT_TIMESTAMP
+#ifdef LOG_USE_TIME
+#include "Time.h"
+#else
+#include "Core.h"
+#endif
+#endif
 
 /*
  * PRIVATE DEFINITIONS
@@ -58,8 +65,15 @@ void Log_Print(
 
 #if defined(LOG_PRINT_COLOR) || defined(LOG_PRINT_TIMESTAMP) || defined(LOG_PRINT_LEVEL) || defined(LOG_PRINT_SOURCE) || defined(LOG_PRINT_FILE)
 #ifdef LOG_PRINT_TIMESTAMP
-	uint32_t t = CORE_GetTick();
-#endif
+#ifdef LOG_USE_TIME
+	uint32_t t_s, t_ms;
+	Time_Unmake(Time_Now(), &t_s, &t_ms);
+#else
+	uint32_t now = CORE_GetTick();
+	uint32_t t_s = now / 1000;
+	uint32_t t_ms = now % 1000;
+#endif // LOG_USE_TIME
+#endif // LOG_PRINT_TIMESTAMP
 	written = snprintf(bfr, sizeof(bfr),
 #if defined(LOG_PRINT_COLOR)
 			"%s"
@@ -89,7 +103,7 @@ void Log_Print(
 			,Log_GetColorString(level)
 #endif
 #if defined(LOG_PRINT_TIMESTAMP)
-			,(int)(t / 1000), (int)(t % 1000)
+			,(int)t_s, (int)t_ms
 #endif
 #if defined(LOG_PRINT_LEVEL)
 			,Log_GetLevelString(level)
@@ -139,6 +153,8 @@ static const char * Log_GetLevelString(uint8_t level)
 	switch (level)
 	{
 	default:
+	case LOG_LEVEL_DEBUG:
+		return "DEBUG";
 	case LOG_LEVEL_INFO:
 		return " INFO";
 	case LOG_LEVEL_WARN:
@@ -155,6 +171,8 @@ static const char * Log_GetColorString(uint8_t level)
 	switch (level)
 	{
 	default:
+	case LOG_LEVEL_DEBUG:
+		return "\033[34m";
 	case LOG_LEVEL_INFO:
 		return "";
 	case LOG_LEVEL_WARN:
